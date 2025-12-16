@@ -479,6 +479,15 @@ function fixed2f(v, bits){
   }, { passive:false });
 
   window.addEventListener("keydown", (ev) => {
+    if (ev.key && ev.key.toLowerCase() === "a") {
+      deepAlways = !deepAlways;
+      try { localStorage.setItem("deepAlways", deepAlways ? "1" : "0"); } catch(e) {}
+      if (deepAlwaysEl) deepAlwaysEl.checked = deepAlways;
+      if (deepNavEnabled) deepNavActive = deepAlways ? true : deepNavActive;
+      updateDeepBadge?.();
+      showToast?.(deepAlways ? "ALWAYS ON" : "ALWAYS OFF");
+      return;
+    }
     if (ev.key === "Escape") { hqAbort(true); requestRender("esc", {preview:true}); return; }
     if (ev.key.toLowerCase() === "r") doReset();
     if (ev.key.toLowerCase() === "s") savePNG();

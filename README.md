@@ -94,3 +94,13 @@ GitHub Pages 手順
 
 ## v9.3.2
 - Fix: deepAlways初期化順序によるReferenceError（Temporal Dead Zone）を解消
+
+
+## v9.3.3
+- Always ON がUIに必ず表示されるようにHTML挿入を強化
+- ショートカット A で Always ON 切替
+
+
+## v9.4
+- 小学生でも迷わないUI：大きいボタン（きれいに描く/画像保存/はじめにもどる/つかいかた）
+- くわしい設定は折りたたみ（大人向け）に隔離
