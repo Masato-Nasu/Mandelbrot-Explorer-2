@@ -102,6 +102,9 @@
   const hqBtn = $("hqBtn");
   const saveBtn = $("saveBtn");
   const deepBtn = $("deepBtn");
+  const deepAlwaysEl = $("deepAlways");
+  const deepBadge = document.getElementById("deepBadge");
+  const toastEl = document.getElementById("toast");
   const followBtn = $("followBtn");
   const zoomSpeedEl = $("zoomSpeed");
   const zoomSpeedValEl = $("zoomSpeedVal");
@@ -161,8 +164,14 @@
   let scaleF = 0;            // float64
 
   // DeepNav BigFloat camera (prevents "depth ceiling" where Number stops changing)
+  // DeepNav turns 'active' when float64 precision becomes useless.
+  // Trigger earlier than underflow so you can keep exploring smoothly.
+  const DEEPNAV_TRIGGER_LOG2 = 80; // smaller => earlier (recommended 60-120)
   let deepNavEnabled = true;
   let deepNavActive = false;
+    if (deepAlways && deepNavEnabled) deepNavActive = true;
+  let deepAlways = true; // force DeepNav active at all depths
+  let lastDeepActive = false;
   let followEnabled = true;
   let followTimer = null;
   let centerXBF = bfFromNumber(centerX);
@@ -371,7 +380,7 @@ function fixed2f(v, bits){
     if (deepNavActive){
       centerX = bfToNumberApprox(centerXBF);
       centerY = bfToNumberApprox(centerYBF);
-      updateHUD("DeepNav active (Followで追従 / HQで最終)", 0, 0, 0, 0, 0);
+      updateHUD("DeepNav active (log2>|"+DEEPNAV_TRIGGER_LOG2+"|)  Follow/HQ", 0, 0, 0, 0, 0);
       scheduleFollowPreview("pan");
       return;
     }
@@ -441,7 +450,7 @@ function fixed2f(v, bits){
       centerX = bfToNumberApprox(centerXBF);
       centerY = bfToNumberApprox(centerYBF);
       scaleF  = bfToNumberApprox(scaleBF);
-      updateHUD("DeepNav active (Followで追従 / HQで最終)", 0, 0, 0, 0, 0);
+      updateHUD("DeepNav active (log2>|"+DEEPNAV_TRIGGER_LOG2+"|)  Follow/HQ", 0, 0, 0, 0, 0);
       scheduleFollowPreview("wheel");
       return;
     }
@@ -485,6 +494,7 @@ function fixed2f(v, bits){
     centerYBF = bfFromNumber(centerY);
     scaleBF = bfFromNumber(scaleF);
     deepNavActive = false;
+    if (deepAlways && deepNavEnabled) deepNavActive = true;
     requestRender("reset", { preview:false });
   }
 
@@ -518,10 +528,21 @@ function fixed2f(v, bits){
   nukeBtn?.addEventListener("click", () => { location.href = "./reset.html"; });
 
   saveBtn?.addEventListener("click", () => { savePNG(); });
+  // restore DeepNav Always state
+  try { deepAlways = (localStorage.getItem("deepAlways") ?? "1") === "1"; } catch(e) {}
+  if (deepAlwaysEl) deepAlwaysEl.checked = deepAlways;
+  deepAlwaysEl?.addEventListener("change", () => {
+    deepAlways = !!deepAlwaysEl.checked;
+    try { localStorage.setItem("deepAlways", deepAlways ? "1" : "0"); } catch(e) {}
+    // If always-on, force active immediately (but keep enabled respected)
+    if (deepAlways && deepNavEnabled) deepNavActive = true;
+    updateDeepBadge();
+  });
+
   deepBtn?.addEventListener("click", () => {
     deepNavEnabled = !deepNavEnabled;
     if (deepBtn) deepBtn.textContent = deepNavEnabled ? "DeepNav" : "DeepNav OFF";
-    updateHUD("toggle DeepNav", 0, 0, 0, 0, 0);
+    updateHUD("toggle DeepNav (enabled)", 0, 0, 0, 0, 0);
   });
 
 
@@ -574,11 +595,42 @@ function fixed2f(v, bits){
 `center = (${centerX.toPrecision(16)}, ${centerY.toPrecision(16)})
 scale  = ${scaleF.toExponential(6)} (magnification ≈ ${mag.toExponential(3)}x)
 scaleBF= log2=${log2Scale}  e2=${scaleBF.e}  mBits~${mBits}
-DeepNav= ${deepNavActive?"ON":"OFF"}
+DeepNav= ${deepNavEnabled ? "ON" : "OFF"}  active=${deepNavActive ? "ON" : "OFF"}
 mode   = ${modeEl?.value || "ultradeep"}   workers=${workerCount} (ok=${workerOK})
 iters  = ${iters}   bits=${bitsUsed}   step=${step}   internalRes=${internal}
 last   = ${ms|0} ms   ${reason||""}`;
+    updateDeepBadge();
   }
+
+  function showToast(msg){
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(showToast._t || 0);
+    showToast._t = setTimeout(() => toastEl.classList.remove("show"), 900);
+  }
+
+  function updateDeepBadge(){
+    if (!deepBadge) return;
+    // enabled=DeepNav機能のON/OFF, active=現在BigFloat優先で動いているか
+    const enabled = !!deepNavEnabled;
+    const active = !!deepNavActive;
+    deepBadge.classList.remove("on","off","standby");
+    if (!enabled){
+      deepBadge.classList.add("off");
+      deepBadge.textContent = "DEEPNAV OFF";
+    } else if (active){
+      deepBadge.classList.add("on");
+      deepBadge.textContent = "DEEPNAV ACTIVE";
+    } else {
+      deepBadge.classList.add("standby");
+      deepBadge.textContent = "DEEPNAV STANDBY";
+    }
+    // toast on transition to active
+    if (active && !lastDeepActive) showToast("DEEPNAV ACTIVE");
+    lastDeepActive = active;
+  }
+
 
 
   function renderStandard(token, opts){

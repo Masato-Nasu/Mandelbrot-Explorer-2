@@ -75,3 +75,18 @@ GitHub Pages 手順
 ## v9.2.8
 - HQ Render後も探索に戻れるように改善：HQパスを中断/復帰（次の入力で自動的に軽い設定へ戻る）
 - ESCでHQ中断
+
+
+## v9.2.9
+- HUDのDeepNav表示を改善：有効(ON/OFF)と稼働(active ON/OFF)を分けて表示（誤解防止）
+
+
+## v9.3.0
+- DeepNavの発動(active)閾値を早めました（log2(|scale|) > 80）
+  - Bits設定とは独立で、float64の精度限界に入る前にBigFloat座標優先に切り替えます
+
+
+## v9.3.1
+- DeepNavの状態表示を強化：左上に『DEEPNAV ACTIVE/STANDBY/OFF』バッジ
+- Always ON 追加：チェックすると深度に関係なくDeepNavを常時active（探索中の座標更新がBigFloat優先）
+  - 注意：DeepNav常時activeは“描画”より“潜航”優先の挙動になります（綺麗な止め絵はHQ Render推奨）

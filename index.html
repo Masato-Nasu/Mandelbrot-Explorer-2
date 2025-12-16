@@ -81,6 +81,39 @@
     @media (max-width: 640px){
       #helpOverlay .grid{ grid-template-columns: 1fr; }
     }
+
+    #deepBadge{
+      position:fixed; left:10px; top:10px; z-index:9998;
+      font: 700 12px/1.0 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      letter-spacing: .08em;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.35);
+      color:#cfcfcf;
+      user-select:none;
+      pointer-events:none;
+      text-transform: uppercase;
+    }
+    #deepBadge.on{ background: rgba(30,140,60,0.32); color:#eaffef; border-color: rgba(60,255,120,0.35); }
+    #deepBadge.standby{ background: rgba(0,0,0,0.35); color:#d9d9d9; border-color: rgba(255,255,255,0.18); }
+    #deepBadge.off{ background: rgba(140,30,30,0.32); color:#ffecec; border-color: rgba(255,120,120,0.35); }
+    #toast{
+      position:fixed; left:50%; top:20px; transform:translateX(-50%);
+      z-index:9999;
+      padding:10px 14px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.55);
+      color:#fff;
+      font: 600 13px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      letter-spacing: .02em;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .18s ease;
+      white-space: nowrap;
+    }
+    #toast.show{ opacity: 1; }
 </style>
 </head>
 <body>
@@ -160,7 +193,7 @@
         <div class="card"><div><span class="k">ホイール</span>ズーム（カーソル中心）</div><div><span class="k">ドラッグ</span>移動（パン）</div></div>
         <div class="card"><div><span class="k">クリック</span>中心合わせ</div><div><span class="k">ダブルクリック</span>中心合わせ＋ズームイン</div></div>
         <div class="card"><div><span class="k">HQ Render</span>止め絵を高精細で仕上げ</div><div><span class="k">Save PNG / S</span>画像として保存</div></div>
-        <div class="card"><div><span class="k">DeepNav</span>超深度で“潜る”優先（必要ならHQで描画）</div><div><span class="k">Reset / R</span>初期位置へ</div></div>
+        <div class="card"><div><span class="k">DeepNav</span>超深度允许（ONなら深い領域で自動的にDeepNavに移行。HUDのactiveがONになります）</div><div><span class="k">Reset / R</span>初期位置へ</div></div>
       </div>
       <div class="note">
         Tip: まずは適当にズームして、良い場所でHQ Render → Save PNG がおすすめです。<br/>
