@@ -87,7 +87,12 @@
 
   const $ = (id) => document.getElementById(id);
 
-  const canvas = $("c");
+  const canvas
+// Safe element handles (mobile panel)
+const panelCloseEl = document.getElementById('panelCloseEl');
+const fabPanelEl = document.getElementById('fabPanelEl') || document.getElementById('helpBtn');
+const fabEl = document.getElementById('fabEl') || document.getElementById('helpBtn') || document.getElementById('fabPanel');
+ = $("c");
 
   // PANEL_SHOWHIDE_JS_V967 (late-binding; works even if app.js loads before body)
   function setPanelVisible(on){
@@ -101,12 +106,12 @@
     setPanelVisible(p.classList.contains("hidden"));
   }
   function bindPanelControls(){
-    const fab = document.getElementById("fabPanel");
-    const closeBtn = document.getElementById("panelClose");
-    if(fab && !fab.__bound){
-      fab.__bound = true;
-      fab.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
-      fab.addEventListener("touchend", (ev)=>{ ev.preventDefault(); togglePanel(); }, {passive:false});
+    const fabEl = document.getElementById("fabPanelEl");
+    const closeBtn = document.getElementById("panelCloseEl");
+    if(fabEl && !fabEl.__bound){
+      fabEl.__bound = true;
+      fabEl && fabEl.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
+      fabEl && fabEl.addEventListener("touchend", (ev)=>{ ev.preventDefault(); togglePanel(); }, {passive:false});
     }
     if(closeBtn && !closeBtn.__bound){
       closeBtn.__bound = true;
@@ -275,7 +280,7 @@ const resetBtn = $("resetBtn");
     requestRender("fabZoom", { preview:true });
   }
 
-  fab?.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
+  fabEl && fabEl.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
   closeBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
 
   // default: hide panel on mobile
