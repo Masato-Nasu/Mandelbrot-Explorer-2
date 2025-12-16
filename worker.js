@@ -1,3 +1,4 @@
+const CACHE_NAME = "mandelbrot-cache-v9.4.8";
 // UltraDeep Mandelbrot worker (fixed-point BigInt)
 function mulFixed(a, b, bits) { return (a * b) >> BigInt(bits); }
 function mandelbrotFixed(cx, cy, bits, maxIter) {

@@ -18,30 +18,24 @@
     <button id="go">実行</button>
     <pre id="log"></pre>
   </div>
-  <script>
-  const log = (t)=>{document.getElementById("log").textContent += t+"\n";}
-  document.getElementById("go").onclick = async () => {
-    try{
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        for (const r of regs) { await r.unregister(); }
-        log("SW: unregistered ("+regs.length+")");
-      } else {
-        log("SW: not supported");
-      }
-      if (window.caches) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k=>caches.delete(k)));
-        log("CacheStorage: deleted ("+keys.length+")");
-      } else {
-        log("CacheStorage: not available");
-      }
-      log("Done. Going back to / in 800ms...");
-      setTimeout(()=>location.href="./", 800);
-    }catch(e){
-      log("ERROR: "+(e && (e.stack||e.message) || e));
+  
+
+<script>
+(async () => {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
     }
-  };
-  </script>
+  } catch(e) {}
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  } catch(e) {}
+  try { localStorage.clear(); sessionStorage.clear(); } catch(e) {}
+  // Force reload with a version query so app.js/worker.js are not taken from cache
+  location.replace("./?v=9.4.8");
+})();
+</script>
 </body>
 </html>

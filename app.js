@@ -174,6 +174,7 @@ const resetBtn = $("resetBtn");
   var lastDeepActive = false;
   let followEnabled = true;
   let followTimer = null;
+  let panRaf = null; // throttle for deep pan preview
   let centerXBF = bfFromNumber(centerX);
   let centerYBF = bfFromNumber(centerY);
   let scaleBF   = bfFromNumber(scaleF); // per-pixel scale in BigFloat
@@ -395,7 +396,7 @@ function fixed2f(v, bits){
       centerX = bfToNumberApprox(centerXBF);
       centerY = bfToNumberApprox(centerYBF);
       updateHUD("DeepNav active (log2>|"+DEEPNAV_TRIGGER_LOG2+"|)  Follow/HQ", 0, 0, 0, 0, 0);
-      scheduleFollowPreview("pan");
+      requestDeepPanPreview("pan");
       return;
     }
     schedule("pan");
@@ -469,7 +470,7 @@ function fixed2f(v, bits){
       centerX = bfToNumberApprox(centerXBF);
       centerY = bfToNumberApprox(centerYBF);
       updateHUD("DeepNav active (log2>|"+DEEPNAV_TRIGGER_LOG2+"|)  Follow/HQ", 0, 0, 0, 0, 0);
-      scheduleFollowPreview("pan");
+      requestDeepPanPreview("pan");
       return;
     }
     schedule("pan");
@@ -880,8 +881,23 @@ done++;
         forceStep: 24,
         forceIterCap: 420
       });
-    }, 120);
+    }, 60);
   }
+
+  function requestDeepPanPreview(reason){
+    if (!deepNavActive) return;
+    if (panRaf) return;
+    panRaf = requestAnimationFrame(() => {
+      panRaf = null;
+      requestRender("pan:" + (reason||""), {
+        preview: false,
+        forceRes: 0.55,
+        forceStep: 10,
+        forceIterCap: 520
+      });
+    });
+  }
+
 
 function requestRender(reason="", opts={}){
     resize(false);
