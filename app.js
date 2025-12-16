@@ -289,6 +289,31 @@ function fixed2f(v, bits){
   let downX = 0, downY = 0, moved = false, downT = 0;
   let lastX = 0, lastY = 0;
   let renderToken = 0;
+  // HQ sequence control (so you can keep exploring after a HQ render)
+  let hqActive = false;
+  let hqTimers = [];
+  let hqPrevStep = null;
+  let hqPrevRes = null;
+  function hqClearTimers(){
+    for (const t of hqTimers) clearTimeout(t);
+    hqTimers = [];
+  }
+  function hqAbort(restore=true){
+    if (!hqActive) return;
+    hqClearTimers();
+    if (restore) {
+      if (hqPrevStep != null && stepEl) stepEl.value = String(hqPrevStep);
+      if (hqPrevRes != null && resEl) resEl.value = String(hqPrevRes);
+      resize(true);
+    }
+    hqActive = false;
+  }
+  function hqOnUserInput(){
+    // Called on wheel/drag/etc. Stops future HQ passes and restores interactive settings.
+    if (!hqActive) return;
+    hqAbort(true);
+  }
+
   let debounce = 0;
   let settleTimer = 0;
 
@@ -317,6 +342,7 @@ function fixed2f(v, bits){
   canvas.addEventListener("pointerdown", (ev) => {
     ev.preventDefault();
     if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
+    hqOnUserInput();
     canvas.setPointerCapture(ev.pointerId);
     isDragging = true;
     moved = false;
@@ -374,6 +400,7 @@ function fixed2f(v, bits){
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
+    hqOnUserInput();
     const {x:px, y:py} = canvasXY(ev);
 
     const base = 0.0045;
@@ -425,6 +452,7 @@ function fixed2f(v, bits){
   canvas.addEventListener("dblclick", (ev) => {
     ev.preventDefault();
     if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
+    hqOnUserInput();
     const p = canvasXY(ev);
     // center to point
     const dxPix = (p.x - W*0.5);
@@ -442,6 +470,7 @@ function fixed2f(v, bits){
   }, { passive:false });
 
   window.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") { hqAbort(true); requestRender("esc", {preview:true}); return; }
     if (ev.key.toLowerCase() === "r") doReset();
     if (ev.key.toLowerCase() === "s") savePNG();
     if (ev.key === "?" || ev.key.toLowerCase() === "h") {
@@ -497,6 +526,15 @@ function fixed2f(v, bits){
 
 
   hqBtn?.addEventListener("click", () => {
+    // HQレンダ中でも「探索に戻れる」ように、パスを管理して中断できるようにする
+    hqAbort(false); // clear old sequence (do not restore old settings)
+    hqActive = true;
+    hqClearTimers();
+
+    // remember current interactive settings
+    hqPrevRes = resEl ? parseFloat(resEl.value || "0.70") : 0.70;
+    hqPrevStep = stepEl ? parseInt(stepEl.value || "2", 10) : 2;
+
     // 段階的に高精細化：まず軽く出してから step を下げていく（最終的に step=1）
     // 内部解像度は 1.0 に固定して作品品質を狙う
     if (resEl) resEl.value = "1.00";
@@ -507,12 +545,20 @@ function fixed2f(v, bits){
 
     for (let i = 0; i < passes.length; i++) {
       const st = passes[i];
-      setTimeout(() => {
+      const tid = setTimeout(() => {
+        // If user already aborted, do nothing.
+        if (!hqActive) return;
         if (stepEl) stepEl.value = String(st);
         requestRender("HQ pass step=" + st, { preview: false, forceStep: st });
+        // last pass: keep HQ result on screen, but allow immediate exploration on next input
+        if (i === passes.length - 1) {
+          // keep hqActive=true until user input; this makes hqOnUserInput restore settings.
+        }
       }, delays[i]);
+      hqTimers.push(tid);
     }
   });
+
   // Rendering
   function clear(){
     ctx.fillStyle = "#0b0b0f";
