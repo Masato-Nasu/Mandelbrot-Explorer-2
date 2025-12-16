@@ -107,7 +107,48 @@
   const deepBadge = document.getElementById("deepBadge");
   const toastEl = document.getElementById("toast");
   const followBtn = $("followBtn");
-  const zoomSpeedEl = $("zoomSpeed");
+  
+  // --- Mobile Mode (lightweight defaults + safer interactions) ---
+  let mobileMode = false;
+  const mobileModeBtn = $("mobileModeBtn");
+  const zoomInBtn = $("zoomInBtn");
+  const zoomOutBtn = $("zoomOutBtn");
+
+  // Recommended mobile defaults
+  const MOBILE_BITS = 768;
+  const MOBILE_ITER = 520;
+  const MOBILE_STEP = 6;
+  const MOBILE_RES  = 0.60;
+
+  function detectMobile() {
+    const ua = navigator.userAgent || "";
+    const small = Math.min(window.innerWidth, window.innerHeight) <= 820;
+    return /Android|iPhone|iPad|iPod/i.test(ua) || (small && "ontouchstart" in window);
+  }
+
+  function setMobileMode(on) {
+    mobileMode = !!on;
+    try { localStorage.setItem("mobileMode", mobileMode ? "1" : "0"); } catch(e) {}
+    if (mobileModeBtn) {
+      mobileModeBtn.textContent = mobileMode ? "ON" : "OFF";
+      mobileModeBtn.classList.toggle("on", mobileMode);
+    }
+
+    // Apply lightweight settings (only if corresponding controls exist)
+    try {
+      if (bitsEl) { bitsEl.value = String(MOBILE_BITS); bitsValEl && (bitsValEl.textContent = String(MOBILE_BITS)); }
+      if (iterEl) { iterEl.value = String(MOBILE_ITER); iterValEl && (iterValEl.textContent = String(MOBILE_ITER)); }
+      if (stepEl) { stepEl.value = String(MOBILE_STEP); stepValEl && (stepValEl.textContent = String(MOBILE_STEP)); }
+      if (resEl)  { resEl.value  = String(MOBILE_RES);  resValEl && (resValEl.textContent  = String(MOBILE_RES)); }
+    } catch(e) {}
+
+    // Prefer stable preview on mobile
+    try { autoSettle = mobileMode ? false : autoSettle; } catch(e) {}
+
+    requestRender("mobileMode", { preview:true });
+  }
+
+const zoomSpeedEl = $("zoomSpeed");
   const zoomSpeedValEl = $("zoomSpeedVal");
 const resetBtn = $("resetBtn");
 
@@ -127,6 +168,40 @@ const resetBtn = $("resetBtn");
     try{ if (followTimer) { clearTimeout(followTimer); followTimer=null; } }catch(e){}
     requestRender("home", {preview:true});
   }
+
+  // Mobile Mode: restore / auto-detect
+  try {
+    const stored = localStorage.getItem("mobileMode");
+    if (stored === "1") setMobileMode(true);
+    else if (stored === null && detectMobile()) setMobileMode(true);
+  } catch(e) {
+    if (detectMobile()) setMobileMode(true);
+  }
+
+  mobileModeBtn?.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    setMobileMode(!mobileMode);
+  });
+
+  // Zoom buttons for touch devices
+  function zoomByButton(dir){
+    // dir: +1 zoom in, -1 zoom out
+    const factor = (dir > 0) ? 0.80 : 1.25;
+    // Zoom around screen center (simple & predictable on mobile)
+    const px = W*0.5, py = H*0.5;
+    const dxPix = (px - W*0.5);
+    const dyPix = (py - H*0.5);
+
+    // Apply scale
+    scaleF *= factor;
+    scaleBF = bfMul(scaleBF, bfFromNumber(factor));
+    // Center stays the same (center zoom)
+    requestRender("btnZoom", { preview:true });
+  }
+
+  zoomInBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(+1); });
+  zoomOutBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(-1); });
+
 
   resetBtn?.addEventListener("click", (ev) => { ev.preventDefault(); goHome(); });
   const nukeBtn = $("nukeBtn");
