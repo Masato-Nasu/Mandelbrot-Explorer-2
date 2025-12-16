@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0f" />
-  <title>Mandelbrot Explorer v9.5.9 Kids UI</title>
+  <title>Mandelbrot Explorer v9.6.0 Kids UI</title>
   <link rel="icon" href="./favicon.ico" />
   <style>
     html,body{margin:0;height:100%;background:#0b0b0f;overflow:hidden}
@@ -153,41 +153,115 @@
     .pill:active{transform:translateY(1px)}
     .tiny{font-size:12px;opacity:.75}
 
-
-    /* Mobile compact UI */
-    @media (max-width: 640px){
-      .panel{
-        top:8px; right:8px;
-        width: calc(100vw - 16px);
-        padding:8px 10px;
-        border-radius:14px;
-        font-size:11px;
-        max-height: 38vh;
-        overflow:auto;
-      }
-      .kidsSub{display:none}
+    /* --- Mobile compact UI --- */
+    .kidsHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .kidsHeaderText{min-width:0}
+    .uiToggleBtn{
+      flex:0 0 auto;
+      width:38px;height:38px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);
+      color:#fff;font-size:18px;font-weight:900;
+      cursor:pointer;
+    }
+    .uiToggleBtn:active{transform:translateY(1px)}
+    .zoomBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .zoomBtns button{padding:12px 10px;border-radius:14px;font-size:16px;font-weight:900}
+    .zoomBtns button.alt{border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.25)}
+    .panel.compact .kidsSub{display:none}
+    .panel.compact details.advanced{display:none}
+    .panel.compact .row{display:none}
+    .panel.compact .zoomBtns{display:grid}
+    .panel.compact .bigBtns button{padding:10px 10px;font-size:12px}
+    .panel.compact{padding:10px 10px;border-radius:16px}
+    @media (max-width: 520px){
+      .panel{right:8px;left:8px;top:8px;width:auto;padding:10px 10px;border-radius:16px}
+      .kidsTitle{font-size:13px}
       .bigBtns{gap:6px}
-      .bigBtns button{
-        padding:9px 8px;
-        border-radius:12px;
-        font-size:12px;
-      }
-      /* Hide long inline help on mobile; use "つかいかた" overlay button instead */
-      details.advanced{display:none}
-      /* Settings details inside panel */
-      details.mobileSettings{
-        margin-top:8px;
-        border-top:1px solid rgba(255,255,255,.10);
-        padding-top:6px;
-      }
-      details.mobileSettings summary{
-        cursor:pointer; user-select:none;
-        color:#ddd; font-weight:800;
-        list-style:none;
-      }
-      details.mobileSettings summary::-webkit-details-marker{display:none}
+      .bigBtns button{padding:10px 8px;font-size:12px;border-radius:14px}
+      .zoomBtns{gap:6px}
+      .zoomBtns button{padding:10px 8px;font-size:15px;border-radius:14px}
     }
 
+  
+/* MOBILE_COMPACT_V960 */
+#mobileFab{
+  position:fixed;
+  left:12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  display:none;
+  gap:10px;
+  z-index:2147483600;
+}
+#mobileFab .fab{
+  width:48px; height:48px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.55);
+  color:#fff;
+  font:800 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#mobileFab .fab:active{ transform: translateY(1px); }
+
+@media (max-width: 520px){
+  #mobileFab{ display:flex; }
+
+  #verFixed{
+    right:10px; bottom: calc(12px + env(safe-area-inset-bottom));
+    font-size:11px; padding:6px 9px;
+    border-radius:999px;
+  }
+
+  #kidsTop{
+    position:fixed;
+    left:10px; right:10px;
+    top:10px;
+    z-index:2147483500;
+    max-height: 30vh;
+    overflow:auto;
+    padding:10px;
+    border-radius:18px;
+  }
+  #kidsTop h1{ font-size:18px; margin:0 0 6px 0; }
+  #kidsTop button{ min-height:44px; font-size:15px; }
+  #kidsTop .grid2{ gap:10px; }
+  #kidsTop .tiny, #kidsTop .helptext{ font-size:12px; }
+
+  #kidsTop.collapsed{
+    max-height: 64px;
+    overflow:hidden;
+    padding-bottom:8px;
+  }
+  #kidsTop.collapsed .grid2,
+  #kidsTop.collapsed .row,
+  #kidsTop.collapsed details{
+    display:none !important;
+  }
+  #kidsTop .collapseBar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-top:6px;
+  }
+    /* Robust collapse: hide everything except title + bar */
+  #kidsTop.collapsed > *{ display:none !important; }
+  #kidsTop.collapsed h1{ display:block !important; }
+  #kidsTop.collapsed .collapseBar{ display:flex !important; }
+
+  #kidsTop .collapseBtn{
+    padding:8px 12px;
+    min-height:40px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.06);
+    color:#fff;
+    font-weight:800;
+  }
+}
 </style>
 </head>
 <body>
@@ -198,9 +272,12 @@
   <div class="panel">
 
     <div class="kidsTop">
-      <div>
-        <div class="kidsTitle">マンデルブロ探検</div>
-        <div class="kidsSub">ホイールでズーム（Shiftでゆっくり）（CAD式） / 左クリック/ホイール押し込みでドラッグ / きれいに描く→画像保存</div>
+      <div class="kidsHeader">
+        <div class="kidsHeaderText">
+          <div class="kidsTitle">マンデルブロ探検</div>
+          <div class="kidsSub">ズーム：＋/−（スマホ）／ホイール（PC）（CAD式） / 左クリック/ホイール押し込みでドラッグ / きれいに描く→画像保存</div>
+        </div>
+        <button id="uiToggleBtn" class="uiToggleBtn" title="メニューをたたむ/開く">≡</button>
       </div>
       <div class="bigBtns">
         <button id="hqBtn" class="primary" title="段階的に高精細化（重い）">きれいに描く</button>
@@ -331,9 +408,15 @@
   const el = document.getElementById('verFixed');
   if (!el) return;
   const qs = new URLSearchParams(location.search);
-  const v = qs.get('v') || '9.5.9';
-  el.textContent = `v${v}  build:2025-12-16T10:41:12Z`;
+  const v = qs.get('v') || '9.6.0';
+  el.textContent = `v${v}  build:2025-12-16T10:54:08Z`;
 })();
 </script>
+
+<div id="mobileFab" aria-hidden="false">
+  <button id="fabMenu" class="fab" title="メニュー">≡</button>
+  <button id="fabZoomOut" class="fab" title="ズームアウト">−</button>
+  <button id="fabZoomIn" class="fab" title="ズームイン">＋</button>
+</div>
 </body>
 </html>

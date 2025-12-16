@@ -110,9 +110,33 @@
   
   // --- Mobile Mode (lightweight defaults + safer interactions) ---
   let mobileMode = false;
-  const mobileModeBtn = $("mobileModeBtn");
+  
+  // Mobile FAB + panel collapse (v9.6.0)
+  var kidsTop = document.getElementById("kidsTop");
+  var collapseBtn = document.getElementById("collapseBtn");
+  var fabMenu = document.getElementById("fabMenu");
+  var fabZoomIn = document.getElementById("fabZoomIn");
+  var fabZoomOut = document.getElementById("fabZoomOut");
+
+  
+  // MOBILE_FORCE_COLLAPSE_JS_V960
+  function forceCollapseIfMobile(){
+    try{
+      if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelCollapsed(true);
+    }catch(e){}
+  }
+
+function setPanelCollapsed(on){
+    if(!kidsTop) return;
+    kidsTop.classList.toggle("collapsed", !!on);
+    if (collapseBtn) collapseBtn.textContent = (kidsTop.classList.contains("collapsed") ? "ひらく" : "とじる");
+  }
+const mobileModeBtn = $("mobileModeBtn");
   const zoomInBtn = $("zoomInBtn");
   const zoomOutBtn = $("zoomOutBtn");
+
+  const uiToggleBtn = $("uiToggleBtn");
+  const panelEl = document.querySelector(".panel");
 
   // Recommended mobile defaults
   const MOBILE_BITS = 768;
@@ -170,50 +194,6 @@ const resetBtn = $("resetBtn");
     try{ if (followTimer) { clearTimeout(followTimer); followTimer=null; } }catch(e){}
     requestRender("home", {preview:true});
   }
-
-  function compactMobileUI(){
-    try{
-      if (typeof detectMobile === 'function' && !detectMobile()) return;
-      const panel = document.querySelector('.panel');
-      if (!panel) return;
-
-      // Create a collapsible settings group and move heavy controls into it
-      const zoomRow = document.getElementById('zoomSpeed')?.closest('.row');
-      if (!zoomRow) return;
-
-      const details = document.createElement('details');
-      details.className = 'mobileSettings advanced';
-      details.open = false;
-      const summary = document.createElement('summary');
-      summary.textContent = '設定';
-      details.appendChild(summary);
-
-      const wrap = document.createElement('div');
-      wrap.className = 'advWrap';
-      details.appendChild(wrap);
-
-      const moveTargets = [
-        'mode','res','step','bits','autoBits','iterCap','preview','autoSettle','mobileModeBtn'
-      ];
-
-      const moved = new Set();
-      for (const id of moveTargets){
-        const el = document.getElementById(id);
-        if (!el) continue;
-        const box = el.closest('.row') || el.closest('.chk') || el.parentElement;
-        if (!box || moved.has(box)) continue;
-        moved.add(box);
-        wrap.appendChild(box);
-      }
-
-      // If nothing moved, do nothing
-      if (!wrap.children.length) return;
-
-      // Insert after zoom speed row
-      zoomRow.insertAdjacentElement('afterend', details);
-    }catch(e){}
-  }
-
   // Mobile Mode: restore / auto-detect (defer so core vars initialize)
   setTimeout(() => {
   // Mobile Mode: restore / auto-detect
@@ -230,7 +210,24 @@ const resetBtn = $("resetBtn");
     setMobileMode(!mobileMode);
   });
 
-  // Zoom buttons for touch devices
+  
+  // Track last pointer (for mobile zoom buttons)
+  let lastPX = null, lastPY = null;
+  function setLastPointerFromEvent(ev){
+    try{
+      const rect = canvas.getBoundingClientRect();
+      const x = (ev.clientX ?? (ev.touches && ev.touches[0]?.clientX));
+      const y = (ev.clientY ?? (ev.touches && ev.touches[0]?.clientY));
+      if (x == null || y == null) return;
+      lastPX = x - rect.left;
+      lastPY = y - rect.top;
+    }catch(e){}
+  }
+  canvas.addEventListener("pointerdown", setLastPointerFromEvent, {passive:true});
+  canvas.addEventListener("pointermove", (ev)=>{ if(ev.buttons) setLastPointerFromEvent(ev); }, {passive:true});
+  canvas.addEventListener("touchstart", setLastPointerFromEvent, {passive:true});
+  canvas.addEventListener("touchmove", setLastPointerFromEvent, {passive:true});
+// Zoom buttons for touch devices
   function zoomByButton(dir){
     // dir: +1 zoom in, -1 zoom out
     const factor = (dir > 0) ? 0.80 : 1.25;
@@ -247,6 +244,44 @@ const resetBtn = $("resetBtn");
   }
 
   zoomInBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(+1); });
+
+  // FAB bindings (always available on mobile)
+  collapseBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelCollapsed(!(kidsTop && !kidsTop.classList.contains("collapsed"))); });
+
+  function panelToggle(){
+    if(!kidsTop) return;
+    setPanelCollapsed(!kidsTop.classList.contains("collapsed"));
+  }
+  fabMenu?.addEventListener("click", (ev)=>{ ev.preventDefault(); panelToggle(); });
+
+  function zoomByButtonCenter(dir){
+    const factor = (dir > 0) ? 0.80 : 1.25;
+    scaleF *= factor;
+    scaleBF = bfMul(scaleBF, bfFromNumber(factor));
+    requestRender("fabZoom", { preview:true });
+  }
+  fabZoomIn?.addEventListener("click", (ev)=>{ ev.preventDefault(); zoomByButtonCenter(+1); });
+  fabZoomOut?.addEventListener("click", (ev)=>{ ev.preventDefault(); zoomByButtonCenter(-1); });
+
+  // Default collapsed on mobile
+  try {
+    if (typeof detectMobile === "function" && detectMobile()) setPanelCollapsed(true);
+  } catch(e) {}
+  if (Math.min(innerWidth, innerHeight) <= 520) setPanelCollapsed(true);
+  forceCollapseIfMobile();
+
+  // Panel compact toggle (especially for mobile)
+  function setPanelCompact(on){
+    if (!panelEl) return;
+    panelEl.classList.toggle("compact", !!on);
+    if (uiToggleBtn) uiToggleBtn.textContent = panelEl.classList.contains("compact") ? "≡" : "×";
+  }
+  uiToggleBtn?.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    setPanelCompact(!(panelEl && panelEl.classList.contains("compact")));
+  });
+  // Default: compact on mobile
+  if (detectMobile()) setPanelCompact(true);
   zoomOutBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(-1); });
 
 
@@ -1076,7 +1111,3 @@ function requestRender(reason="", opts={}){
   requestRender("boot", {preview:false});
 })();
 function updateZoomSpeedLabel(){ /* noop */ }
-
-
-// Mobile: compact panel controls
-setTimeout(() => { try{ compactMobileUI(); }catch(e){} }, 0);
