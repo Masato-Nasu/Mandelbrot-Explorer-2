@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0f" />
-  <title>Mandelbrot Explorer v9.4 Kids UI</title>
+  <title>Mandelbrot Explorer v9.4.3 Kids UI</title>
   <link rel="icon" href="./favicon.ico" />
   <style>
     html,body{margin:0;height:100%;background:#0b0b0f;overflow:hidden}
@@ -142,7 +142,7 @@
     <div class="kidsTop">
       <div>
         <div class="kidsTitle">マンデルブロ探検</div>
-        <div class="kidsSub">ホイールでズーム / つかんで動かす / きれいに描く→画像保存</div>
+        <div class="kidsSub">ホイールでズーム（CAD式） / 左クリックorホイール押し込みでドラッグ / きれいに描く→画像保存</div>
       </div>
       <div class="bigBtns">
         <button id="hqBtn" class="primary" title="段階的に高精細化（重い）">きれいに描く</button>
@@ -154,7 +154,7 @@
         <label>ズームの速さ <span id="zoomSpeedVal" style="color:#bbb;font-size:12px;margin-left:6px;">0.35×</span></label>
         <input id="zoomSpeed" type="range" min="0.02" max="1.20" step="0.01" value="0.35" />
       </div>
-      <div class="row">
+<div class="row">
         <label>超深度</label>
         <button id="deepBtn" class="alt" title="超深度モード（深く潜る）">超深度</button>
         <label class="chk" title="深度に関係なく超深度を常にACTIVEにします（潜航優先）"><input id="deepAlways" type="checkbox" checked>超深度 いつもON</label>
@@ -208,7 +208,7 @@
 
 <div class="hint">
   ① ホイール：ズーム（カーソルのところ）<br/>
-  ② つかんで動かす：移動（ドラッグ）<br/>
+  ② 左クリック または ホイール押し込み：移動（ドラッグ）<br/>
   ③ きれいに描く → 画像を保存
 </div>
   </div>

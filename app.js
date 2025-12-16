@@ -108,7 +108,7 @@
   const followBtn = $("followBtn");
   const zoomSpeedEl = $("zoomSpeed");
   const zoomSpeedValEl = $("zoomSpeedVal");
-  const resetBtn = $("resetBtn");
+const resetBtn = $("resetBtn");
   const nukeBtn = $("nukeBtn");
   const helpBtn = $("helpBtn");
   const helpOverlay = document.getElementById("helpOverlay");
@@ -352,6 +352,11 @@ function fixed2f(v, bits){
     ev.preventDefault();
     if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     hqOnUserInput();
+    // Drag start: allow LEFT button or MIDDLE (wheel press) for mouse.
+    if (ev.pointerType === "mouse") {
+      const ok = (ev.button === 0 || ev.button === 1 || (ev.buttons & 1) || (ev.buttons & 4));
+      if (!ok) return;
+    }
     canvas.setPointerCapture(ev.pointerId);
     isDragging = true;
     moved = false;
@@ -840,5 +845,4 @@ function requestRender(reason="", opts={}){
   resize(true);
   requestRender("boot", {preview:false});
 })();
-
 function updateZoomSpeedLabel(){ /* noop */ }
