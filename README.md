@@ -85,3 +85,9 @@ GitHub Pages 手順
 ## v9.2.6
 - ドラッグの“尾引き”対策：active pointer idでガード + mouseボタン解除時(ev.buttons==0)に即停止
 - pointercancel / lostpointercaptureでも確実にドラッグ状態を解除
+
+
+## v9.2.7 (Stable Preview)
+- 「操作中プレビュー」をデフォルトOFF（常にガサガサ動くのを防止）
+- 操作停止後に高精細へ寄せる待ち時間を少し延長
+- DeepNav中も停止後に中精細へ寄せる（deepNavSettle）

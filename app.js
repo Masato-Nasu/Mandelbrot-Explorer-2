@@ -315,10 +315,19 @@ function fixed2f(v, bits){
 
   function schedule(reason){
     clearTimeout(debounce);
-    debounce = setTimeout(() => { if (!deepNavActive) requestRender(reason, { preview:true }); else updateHUD("DeepNav active (press P or HQ)", 0, 0, 0, 0, 0); }, 35);
+    debounce = setTimeout(() => {
+      if (!deepNavActive) {
+        // 「操作中プレビュー」がONのときだけ粗いプレビューを回す（常にガサガサ動くのを防ぐ）
+        if (previewEl?.checked ?? false) requestRender(reason, { preview:true });
+      } else {
+        // DeepNav中はFollowがONなら追従プレビュー（停止後はdeepNavSettleで中精細に寄せる）
+        if (followEnabled) scheduleFollowPreview(reason);
+        updateHUD("DeepNav active (Followで追従 / HQで最終)", 0, 0, 0, 0, 0);
+      }
+    }, 35);
     if (autoSettleEl?.checked) {
       clearTimeout(settleTimer);
-      settleTimer = setTimeout(() => { if (!deepNavActive) requestRender("settle", { preview:false }); }, 220);
+      settleTimer = setTimeout(() => { if (!deepNavActive) requestRender("settle", { preview:false }); else deepNavSettle(); }, 380);
     }
   }
 
@@ -825,6 +834,18 @@ done++;
       });
     }, 120);
   }
+
+  let deepSettleTimer = null;
+  function deepNavSettle(){
+    if (!deepNavActive) return;
+    clearTimeout(deepSettleTimer);
+    // DeepNav中は“潜航しやすさ”優先なので、重すぎない中精細で一旦止め絵を作る
+    deepSettleTimer = setTimeout(() => {
+      if (!deepNavActive) return;
+      requestRender("deepSettle", { preview:false, forceRes:0.70, forceStep:6, forceIterCap:900 });
+    }, 10);
+  }
+
 
 function requestRender(reason="", opts={}){
     resize(false);
