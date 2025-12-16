@@ -148,7 +148,7 @@
   // --- Mobile Mode (lightweight defaults + safer interactions) ---
   let mobileMode = false;
   
-  // Mobile FAB + panel collapse (v9.6.9)
+  // Mobile FAB + panel collapse (v9.6.10)
   var uiPanel = document.getElementById("uiPanel");
   
 const mobileModeBtn = $("mobileModeBtn");
@@ -288,7 +288,7 @@ const resetBtn = $("resetBtn");
     if (typeof detectMobile === "function" && detectMobile()) setPanelVisible(false);
   } catch(e) {}
   if (Math.min(innerWidth, innerHeight) <= 520) setPanelVisible(false);
-  /* forceCollapseIfMobile disabled v9.6.9 */
+  /* forceCollapseIfMobile disabled v9.6.10 */
 
   // Panel compact toggle (especially for mobile)
   zoomOutBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(-1); });
@@ -303,25 +303,31 @@ const resetBtn = $("resetBtn");
 
   resetBtn?.addEventListener("click", (ev) => { ev.preventDefault(); goHome(); });
   const nukeBtn = $("nukeBtn");
-function showErr(t){
-    errBox.style.display = "block";
-    errBox.textContent = t;
-  }
-  }
-  function shouldShowHelp(){
-    try{ return localStorage.getItem(HELP_KEY) !== "1"; }catch(e){ return true; }
-  }
-  function hideHelpAndMark(){
-    markHelpSeen();
-    hideHelp();
-  }
 
+  function showErr(t){
+    try{
+      if (!errBox) return;
+      errBox.style.display = "block";
+      errBox.textContent = String(t ?? "");
+    }catch(e){}
+  }
 
   // If any runtime error escapes, show it.
-  window.addEventListener("error", (e) => showErr("[window.error]\n" + e.message + "\n" + e.filename + ":" + e.lineno + ":" + e.colno));
-  window.addEventListener("unhandledrejection", (e) => showErr("[unhandledrejection]\n" + ((e.reason && (e.reason.stack || e.reason.message)) || e.reason)));
+  window.addEventListener("error", (e) => {
+    const msg = (e && e.message) ? e.message : "";
+    const file = (e && e.filename) ? e.filename : "";
+    const line = (e && e.lineno) ? e.lineno : 0;
+    const col  = (e && e.colno) ? e.colno : 0;
+    showErr("[window.error]\n" + msg + "\n" + file + ":" + line + ":" + col);
+  }, {passive:true});
 
-  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+  window.addEventListener("unhandledrejection", (e) => {
+    const r = e && e.reason;
+    const msg = (r && (r.stack || r.message)) ? (r.stack || r.message) : String(r);
+    showErr("[unhandledrejection]\n" + msg);
+  }, {passive:true});
+
+const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
   var dpr = 1; // safe init (no TDZ on mobile)
   dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
   var cssW = 0, cssH = 0; // var to avoid TDZ on some mobile browsers
