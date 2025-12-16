@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0f" />
-  <title>Mandelbrot Explorer v9.6.0 Kids UI</title>
+  <title>Mandelbrot Explorer v9.6.1 Kids UI</title>
   <link rel="icon" href="./favicon.ico" />
   <style>
     html,body{margin:0;height:100%;background:#0b0b0f;overflow:hidden}
@@ -262,6 +262,49 @@
     font-weight:800;
   }
 }
+
+/* MOBILE_PANEL_TOGGLE_V961 */
+#fabPanel{
+  position:fixed;
+  right:12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  width:48px; height:48px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.55);
+  color:#fff;
+  font:900 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+  z-index:2147483601;
+  display:none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#fabPanel:active{ transform: translateY(1px); }
+
+#kidsTop.hidden{ display:none !important; }
+#kidsTop{ position:fixed; }
+
+@media (max-width: 520px){
+  #fabPanel{ display:block; }
+  /* on phone: panel should not take entire screen; keep scroll */
+  #kidsTop{
+    left:10px; right:10px; top:10px;
+    max-height: 60vh;
+    overflow:auto;
+  }
+  #panelClose{
+    position:absolute;
+    right:10px; top:10px;
+    width:40px; height:40px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(0,0,0,.35);
+    color:#fff;
+    font-size:22px;
+    line-height:40px;
+    font-weight:900;
+  }
+}
 </style>
 </head>
 <body>
@@ -275,7 +318,8 @@
       <div class="kidsHeader">
         <div class="kidsHeaderText">
           <div class="kidsTitle">マンデルブロ探検</div>
-          <div class="kidsSub">ズーム：＋/−（スマホ）／ホイール（PC）（CAD式） / 左クリック/ホイール押し込みでドラッグ / きれいに描く→画像保存</div>
+          <div class="kidsSub">ズーム：＋/−（スマホ）／ホイール（PC）
+スマホ：＋/−でズーム／1本指ドラッグで移動／ダブルタップで中心（CAD式） / 左クリック/ホイール押し込みでドラッグ / きれいに描く→画像保存</div>
         </div>
         <button id="uiToggleBtn" class="uiToggleBtn" title="メニューをたたむ/開く">≡</button>
       </div>
@@ -337,7 +381,13 @@
     </details>
 
 <div class="hint">
-  ① ホイール：ズーム（カーソルのところ）<br/>
+  【スマホ】
+① ＋／−：ズーム
+② 1本指ドラッグ：移動
+③ ダブルタップ：そこを中心にする
+
+【PC】
+① ホイール：ズーム（カーソルのところ）<br/>
   ② 左クリック または ホイール押し込み：移動（ドラッグ）<br/>
   ③ ダブルクリック：そこを中心にする<br/>④ きれいに描く → 画像を保存
 </div>
@@ -408,15 +458,16 @@
   const el = document.getElementById('verFixed');
   if (!el) return;
   const qs = new URLSearchParams(location.search);
-  const v = qs.get('v') || '9.6.0';
-  el.textContent = `v${v}  build:2025-12-16T10:54:08Z`;
+  const v = qs.get('v') || '9.6.1';
+  el.textContent = `v${v}  build:2025-12-16T11:09:27Z`;
 })();
 </script>
 
 <div id="mobileFab" aria-hidden="false">
-  <button id="fabMenu" class="fab" title="メニュー">≡</button>
   <button id="fabZoomOut" class="fab" title="ズームアウト">−</button>
   <button id="fabZoomIn" class="fab" title="ズームイン">＋</button>
 </div>
+
+<button id="fabPanel" title="操作パネル" aria-label="操作パネル">？</button>
 </body>
 </html>

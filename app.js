@@ -111,8 +111,21 @@
   // --- Mobile Mode (lightweight defaults + safer interactions) ---
   let mobileMode = false;
   
-  // Mobile FAB + panel collapse (v9.6.0)
+  // Mobile FAB + panel collapse (v9.6.1)
   var kidsTop = document.getElementById("kidsTop");
+  // MOBILE_PANEL_TOGGLE_JS_V961
+  var fabPanel = document.getElementById("fabPanel");
+  var panelClose = document.getElementById("panelClose");
+
+  function setPanelVisible(on){
+    if(!kidsTop) return;
+    kidsTop.classList.toggle("hidden", !on);
+  }
+  function togglePanel(){
+    if(!kidsTop) return;
+    setPanelVisible(kidsTop.classList.contains("hidden"));
+  }
+
   var collapseBtn = document.getElementById("collapseBtn");
   var fabMenu = document.getElementById("fabMenu");
   var fabZoomIn = document.getElementById("fabZoomIn");
@@ -122,14 +135,14 @@
   // MOBILE_FORCE_COLLAPSE_JS_V960
   function forceCollapseIfMobile(){
     try{
-      if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelCollapsed(true);
+      if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelVisible(false);
     }catch(e){}
   }
 
-function setPanelCollapsed(on){
+function setPanelVisible(on){
     if(!kidsTop) return;
-    kidsTop.classList.toggle("collapsed", !!on);
-    if (collapseBtn) collapseBtn.textContent = (kidsTop.classList.contains("collapsed") ? "ひらく" : "とじる");
+    kidsTop.classList.toggle("hidden", !!on);
+    if (collapseBtn) collapseBtn.textContent = (kidsTop.classList.contains("hidden") ? "ひらく" : "とじる");
   }
 const mobileModeBtn = $("mobileModeBtn");
   const zoomInBtn = $("zoomInBtn");
@@ -246,11 +259,11 @@ const resetBtn = $("resetBtn");
   zoomInBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(+1); });
 
   // FAB bindings (always available on mobile)
-  collapseBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelCollapsed(!(kidsTop && !kidsTop.classList.contains("collapsed"))); });
+  collapseBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(!(kidsTop && !kidsTop.classList.contains("hidden"))); });
 
   function panelToggle(){
     if(!kidsTop) return;
-    setPanelCollapsed(!kidsTop.classList.contains("collapsed"));
+    setPanelVisible(!kidsTop.classList.contains("hidden"));
   }
   fabMenu?.addEventListener("click", (ev)=>{ ev.preventDefault(); panelToggle(); });
 
@@ -263,12 +276,20 @@ const resetBtn = $("resetBtn");
   fabZoomIn?.addEventListener("click", (ev)=>{ ev.preventDefault(); zoomByButtonCenter(+1); });
   fabZoomOut?.addEventListener("click", (ev)=>{ ev.preventDefault(); zoomByButtonCenter(-1); });
 
+  fabPanel?.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
+  panelClose?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
+
+  // default: hide panel on mobile
+  try{
+    if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelVisible(false);
+  }catch(e){}
+
   // Default collapsed on mobile
   try {
-    if (typeof detectMobile === "function" && detectMobile()) setPanelCollapsed(true);
+    if (typeof detectMobile === "function" && detectMobile()) setPanelVisible(false);
   } catch(e) {}
-  if (Math.min(innerWidth, innerHeight) <= 520) setPanelCollapsed(true);
-  forceCollapseIfMobile();
+  if (Math.min(innerWidth, innerHeight) <= 520) setPanelVisible(false);
+  /* forceCollapseIfMobile disabled v9.6.1 */
 
   // Panel compact toggle (especially for mobile)
   function setPanelCompact(on){
