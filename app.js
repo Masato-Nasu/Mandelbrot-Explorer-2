@@ -275,8 +275,8 @@ const resetBtn = $("resetBtn");
     requestRender("fabZoom", { preview:true });
   }
 
-  fabPanel?.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
-  panelClose?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
+  fab?.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
+  closeBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
 
   // default: hide panel on mobile
   try{
