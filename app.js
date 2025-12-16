@@ -102,6 +102,8 @@
   const hqBtn = $("hqBtn");
   const saveBtn = $("saveBtn");
   const deepBtn = $("deepBtn");
+  const followBtn = $("followBtn");
+  const zoomSpeedEl = $("zoomSpeed");
   const resetBtn = $("resetBtn");
   const nukeBtn = $("nukeBtn");
 
@@ -129,6 +131,8 @@
   // DeepNav BigFloat camera (prevents "depth ceiling" where Number stops changing)
   let deepNavEnabled = true;
   let deepNavActive = false;
+  let followEnabled = true;
+  let followTimer = null;
   let centerXBF = bfFromNumber(centerX);
   let centerYBF = bfFromNumber(centerY);
   let scaleBF   = bfFromNumber(scaleF); // per-pixel scale in BigFloat
@@ -250,6 +254,7 @@ function fixed2f(v, bits){
 
   // Interaction
   let isDragging = false;
+  let downX = 0, downY = 0, moved = false;
   let lastX = 0, lastY = 0;
   let renderToken = 0;
   let debounce = 0;
@@ -280,7 +285,9 @@ function fixed2f(v, bits){
   canvas.addEventListener("pointerdown", (ev) => {
     canvas.setPointerCapture(ev.pointerId);
     isDragging = true;
+    moved = false;
     const p = canvasXY(ev);
+    downX = p.x; downY = p.y;
     lastX = p.x; lastY = p.y;
   }, { passive:true });
 
@@ -289,6 +296,7 @@ function fixed2f(v, bits){
     const p = canvasXY(ev);
     const dx = p.x - lastX;
     const dy = p.y - lastY;
+    if (!moved && (Math.abs(p.x - downX) + Math.abs(p.y - downY) > 3)) moved = true;
     lastX = p.x; lastY = p.y;
     centerX -= dx * scaleF;
     centerY -= dy * scaleF;
@@ -298,13 +306,30 @@ function fixed2f(v, bits){
     if (deepNavActive){
       centerX = bfToNumberApprox(centerXBF);
       centerY = bfToNumberApprox(centerYBF);
-      updateHUD("DeepNav active (press P or HQ)", 0, 0, 0, 0, 0);
+      updateHUD("DeepNav active (Followで追従 / HQで最終)", 0, 0, 0, 0, 0);
+      scheduleFollowPreview("pan");
       return;
     }
     schedule("pan");
   }, { passive:true });
 
-  canvas.addEventListener("pointerup", () => { isDragging=false; }, { passive:true });
+  canvas.addEventListener("pointerup", (ev) => {
+    isDragging = false;
+    // Click-to-center (no drag): re-center to cursor position
+    if (!moved) {
+      const p = canvasXY(ev);
+      const dxPix = (p.x - W*0.5);
+      const dyPix = (p.y - H*0.5);
+      // float
+      centerX += dxPix * scaleF;
+      centerY += dyPix * scaleF;
+      // BigFloat
+      centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(dxPix), scaleBF));
+      centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(dyPix), scaleBF));
+      if (deepNavActive) scheduleFollowPreview("click");
+      else schedule("click");
+    }
+  }, { passive:true });
   canvas.addEventListener("pointercancel", () => { isDragging=false; }, { passive:true });
 
   canvas.addEventListener("wheel", (ev) => {
@@ -312,11 +337,9 @@ function fixed2f(v, bits){
     const {x:px, y:py} = canvasXY(ev);
 
     const base = 0.0080;
-    const fine = ev.shiftKey ? 0.25 : 1.0;
-    const turbo = ev.altKey ? 4.0 : 1.0;
-    const hyper = ev.ctrlKey ? 12.0 : 1.0;
+    const zspd = Math.max(0.2, Math.min(12.0, parseFloat(zoomSpeedEl?.value || "2.0")));
     const dyN = ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
-    const speed = base * fine * turbo * hyper;
+    const speed = base * zspd;
     const factor = Math.exp(-dyN * speed);
 
     const dxPix = (px - W*0.5);
@@ -349,18 +372,35 @@ function fixed2f(v, bits){
       centerX = bfToNumberApprox(centerXBF);
       centerY = bfToNumberApprox(centerYBF);
       scaleF  = bfToNumberApprox(scaleBF);
-      updateHUD("DeepNav active (press P or HQ)", 0, 0, 0, 0, 0);
-      // do not auto-render while navigating deep
+      updateHUD("DeepNav active (Followで追従 / HQで最終)", 0, 0, 0, 0, 0);
+      scheduleFollowPreview("wheel");
       return;
     }
 
     schedule("zoom");
   }, { passive:false });
 
+  canvas.addEventListener("dblclick", (ev) => {
+    ev.preventDefault();
+    const p = canvasXY(ev);
+    // center to point
+    const dxPix = (p.x - W*0.5);
+    const dyPix = (p.y - H*0.5);
+    centerX += dxPix * scaleF;
+    centerY += dyPix * scaleF;
+    centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(dxPix), scaleBF));
+    centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(dyPix), scaleBF));
+    // zoom in a bit
+    const factor = 0.5;
+    scaleF *= factor;
+    scaleBF = bfMul(scaleBF, bfFromNumber(factor));
+    if (deepNavActive) scheduleFollowPreview("dbl");
+    else schedule("dbl");
+  }, { passive:false });
+
   window.addEventListener("keydown", (ev) => {
     if (ev.key.toLowerCase() === "r") doReset();
     if (ev.key.toLowerCase() === "s") savePNG();
-    if (ev.key.toLowerCase() === "p") { if (deepNavActive) requestRender("preview (P)", { preview:false, forceStep: 8 }); }
   }, { passive:true });
 
   function doReset(){
@@ -451,12 +491,14 @@ last   = ${ms|0} ms   ${reason||""}`;
 
   function renderStandard(token, opts){
     const start = performance.now();
-    const internal = parseFloat(resEl?.value || "0.70");
+    let internal = parseFloat(resEl?.value || "0.70");
+    if (opts && Number.isFinite(opts.forceRes)) internal = Math.max(0.10, Math.min(1.0, opts.forceRes));
     const preview = !!(opts && opts.preview) && (previewEl?.checked ?? true);
     const baseStep = parseInt(stepEl?.value || "2", 10);
     let step = ((opts && opts.hq) ? 1 : (preview ? Math.min(16, Math.max(6, baseStep*3)) : baseStep));
     if (opts && Number.isFinite(opts.forceStep)) step = Math.max(1, opts.forceStep|0);
-    const iters = itersForScale(scaleF);
+    let iters = itersForScale(scaleF);
+    if (opts && Number.isFinite(opts.forceIterCap)) iters = Math.min(iters, opts.forceIterCap|0);
 
     const img = ctx.createImageData(W, H);
     const data = img.data;
@@ -509,8 +551,10 @@ last   = ${ms|0} ms   ${reason||""}`;
     const start = performance.now();
     const preview = !!(opts && opts.preview) && (previewEl?.checked ?? true);
     const baseBits = parseInt(bitsEl?.value || "512", 10) | 0;
-    const iters = itersForScale(scaleF);
-    const internal = parseFloat(resEl?.value || "0.70");
+    let iters = itersForScale(scaleF);
+    if (opts && Number.isFinite(opts.forceIterCap)) iters = Math.min(iters, opts.forceIterCap|0);
+    let internal = parseFloat(resEl?.value || "0.70");
+    if (opts && Number.isFinite(opts.forceRes)) internal = Math.max(0.10, Math.min(1.0, opts.forceRes));
 
     // preview bits cap for speed
     const bitsUsed = (preview ? Math.min(baseBits, 160) : baseBits) | 0;
@@ -592,7 +636,23 @@ done++;
     }
   }
 
-  function requestRender(reason="", opts={}){
+  
+  function scheduleFollowPreview(reason){
+    if (!deepNavActive || !followEnabled) return;
+    if (followTimer) clearTimeout(followTimer);
+    // デバウンスして、操作が落ち着いたら低負荷プレビューを1回だけ描画
+    followTimer = setTimeout(() => {
+      followTimer = null;
+      requestRender("follow:" + (reason||""), {
+        preview: false,
+        forceRes: 0.40,
+        forceStep: 24,
+        forceIterCap: 420
+      });
+    }, 120);
+  }
+
+function requestRender(reason="", opts={}){
     resize(false);
     const token = ++renderToken;
     try{

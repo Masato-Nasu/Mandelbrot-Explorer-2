@@ -34,3 +34,14 @@ GitHub Pages 手順
 
 ## v9.0.1
 - bfFromNumber が未定義になるケースを修正（BigFloat関数群を初期化より前に配置）
+
+
+## v9.0.2
+- DeepNav中でも「Follow ON」で低負荷プレビュー追従（操作しやすさ向上）
+- プレビューはデバウンスして1回だけ描画（forceRes/forceStep/forceIterCap）
+
+
+## v9.1 (Simple Controls)
+- ホイール速度をスライダー（Zoom Speed）に一本化（Alt/Ctrl/Shift不要）
+- クリックで中心合わせ、ダブルクリックで中心合わせ＋少しズームイン
+- DeepNav中は Follow で自動追従（Pキー不要）
