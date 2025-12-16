@@ -1,5 +1,5 @@
 // worker.js - Fixed-point Mandelbrot renderer (BigInt) with smooth coloring
-// Version v9.5.1
+// Version v9.5.2
 
 function clamp01(v){ return v < 0 ? 0 : (v > 1 ? 1 : v); }
 

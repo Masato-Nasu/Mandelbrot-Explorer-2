@@ -658,37 +658,31 @@ canvas.addEventListener("wheel", (ev) => {
 
 
   hqBtn?.addEventListener("click", () => {
-    // HQレンダ中でも「探索に戻れる」ように、パスを管理して中断できるようにする
-    hqAbort(false); // clear old sequence (do not restore old settings)
+    // One-shot HQ render: no progressive passes (prevents "keeps changing" feeling).
+    hqAbort(false);
     hqActive = true;
     hqClearTimers();
 
-    // remember current interactive settings
+    // remember interactive settings
     hqPrevRes = resEl ? parseFloat(resEl.value || "0.70") : 0.70;
     hqPrevStep = stepEl ? parseInt(stepEl.value || "2", 10) : 2;
 
-    // 段階的に高精細化：まず軽く出してから step を下げていく（最終的に step=1）
-    // 内部解像度は 1.0 に固定して作品品質を狙う
+    // set HQ settings
     if (resEl) resEl.value = "1.00";
+    if (stepEl) stepEl.value = "1";
     resize(true);
 
-    const passes = [6, 3, 2, 1];
-    const delays = [0, 220, 520, 900]; // ms
-
-    for (let i = 0; i < passes.length; i++) {
-      const st = passes[i];
-      const tid = setTimeout(() => {
-        // If user already aborted, do nothing.
-        if (!hqActive) return;
-        if (stepEl) stepEl.value = String(st);
-        requestRender("HQ pass step=" + st, { preview: false, forceStep: st });
-        // last pass: keep HQ result on screen, but allow immediate exploration on next input
-        if (i === passes.length - 1) {
-          // keep hqActive=true until user input; this makes hqOnUserInput restore settings.
-        }
-      }, delays[i]);
-      hqTimers.push(tid);
-    }
+    requestRender("HQ(one-shot)", {
+      preview:false,
+      forceRes: 1.0,
+      forceStep: 1,
+      // restore interactive controls after render completes (image stays as-is until next input)
+      onDone: () => {
+        if (resEl) resEl.value = String(hqPrevRes ?? 0.70);
+        if (stepEl) stepEl.value = String(hqPrevStep ?? 2);
+        hqActive = false;
+      }
+    });
   });
 
   // Rendering
@@ -868,6 +862,8 @@ done++;
         for (const w of workers) w.removeEventListener("message", onMsg);
         if (token !== renderToken) return;
         updateHUD("ultradeep "+(preview?"preview":"full"), performance.now()-start, iters, bitsUsed, step, internal.toFixed(2));
+        try{ if (opts && typeof opts.onDone === "function") opts.onDone(); }catch(e){}
+
       }
     };
     for (const w of workers) w.addEventListener("message", onMsg);
