@@ -170,6 +170,50 @@ const resetBtn = $("resetBtn");
     try{ if (followTimer) { clearTimeout(followTimer); followTimer=null; } }catch(e){}
     requestRender("home", {preview:true});
   }
+
+  function compactMobileUI(){
+    try{
+      if (typeof detectMobile === 'function' && !detectMobile()) return;
+      const panel = document.querySelector('.panel');
+      if (!panel) return;
+
+      // Create a collapsible settings group and move heavy controls into it
+      const zoomRow = document.getElementById('zoomSpeed')?.closest('.row');
+      if (!zoomRow) return;
+
+      const details = document.createElement('details');
+      details.className = 'mobileSettings advanced';
+      details.open = false;
+      const summary = document.createElement('summary');
+      summary.textContent = '設定';
+      details.appendChild(summary);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'advWrap';
+      details.appendChild(wrap);
+
+      const moveTargets = [
+        'mode','res','step','bits','autoBits','iterCap','preview','autoSettle','mobileModeBtn'
+      ];
+
+      const moved = new Set();
+      for (const id of moveTargets){
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const box = el.closest('.row') || el.closest('.chk') || el.parentElement;
+        if (!box || moved.has(box)) continue;
+        moved.add(box);
+        wrap.appendChild(box);
+      }
+
+      // If nothing moved, do nothing
+      if (!wrap.children.length) return;
+
+      // Insert after zoom speed row
+      zoomRow.insertAdjacentElement('afterend', details);
+    }catch(e){}
+  }
+
   // Mobile Mode: restore / auto-detect (defer so core vars initialize)
   setTimeout(() => {
   // Mobile Mode: restore / auto-detect
@@ -1032,3 +1076,7 @@ function requestRender(reason="", opts={}){
   requestRender("boot", {preview:false});
 })();
 function updateZoomSpeedLabel(){ /* noop */ }
+
+
+// Mobile: compact panel controls
+setTimeout(() => { try{ compactMobileUI(); }catch(e){} }, 0);
