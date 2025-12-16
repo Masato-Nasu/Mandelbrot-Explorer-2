@@ -128,3 +128,7 @@ GitHub Pages 手順
 ## v9.4.5
 - ドラッグが効かない対策：マウス操作は pointer ではなく mouse イベントで専用実装（左/中ボタン）
 - canvas に touch-action:none + overscroll-behavior を追加（ブラウザのジェスチャ干渉を抑制）
+
+
+## v9.4.6
+- ズーム速度を高速化：ベース係数UP、スライダー上限を2.5×へ、デフォルトを0.65×へ

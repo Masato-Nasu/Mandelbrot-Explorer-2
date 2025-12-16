@@ -490,7 +490,7 @@ canvas.addEventListener("wheel", (ev) => {
     hqOnUserInput();
     const {x:px, y:py} = canvasXY(ev);
 
-    const base = 0.0045;
+    const base = 0.0068;
     const zspd = Math.max(0.01, Math.min(3.0, parseFloat(zoomSpeedEl?.value || "0.35")));
     let dyN = ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
     // 一部デバイスでdeltaが極端に大きく出るので、ズームが跳ねないように抑制
