@@ -133,47 +133,13 @@
   // --- Mobile Mode (lightweight defaults + safer interactions) ---
   let mobileMode = false;
   
-  // Mobile FAB + panel collapse (v9.6.5)
+  // Mobile FAB + panel collapse (v9.6.6)
   var uiPanel = document.getElementById("uiPanel");
-  // MOBILE_PANEL_TOGGLE_JS_V961
-  var fabPanel = document.getElementById("fabPanel");
-  var panelClose = document.getElementById("panelClose");
-
-  function setPanelVisible(on){
-    if(!uiPanel) return;
-    uiPanel.classList.toggle("hidden", !on);
-  }
-  function togglePanel(){
-    if(!uiPanel) return;
-    setPanelVisible(uiPanel.classList.contains("hidden"));
-  }
-
-  var collapseBtn = document.getElementById("collapseBtn");
-  var fabMenu = document.getElementById("fabMenu");
-  var fabZoomIn = document.getElementById("fabZoomIn");
-  var fabZoomOut = document.getElementById("fabZoomOut");
-
   
-  // MOBILE_FORCE_COLLAPSE_JS_V960
-  function forceCollapseIfMobile(){
-    try{
-      if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelVisible(false);
-    }catch(e){}
-  }
-
-function setPanelVisible(on){
-    if(!uiPanel) return;
-    uiPanel.classList.toggle("hidden", !!on);
-    if (collapseBtn) collapseBtn.textContent = (uiPanel.classList.contains("hidden") ? "ひらく" : "とじる");
-  }
 const mobileModeBtn = $("mobileModeBtn");
   const zoomInBtn = $("zoomInBtn");
   const zoomOutBtn = $("zoomOutBtn");
-
-  const panelClose = $("panelClose");
-  const panelEl = document.querySelector(".panel");
-
-  // Recommended mobile defaults
+// Recommended mobile defaults
   const MOBILE_BITS = 768;
   const MOBILE_ITER = 520;
   const MOBILE_STEP = 6;
@@ -281,13 +247,11 @@ const resetBtn = $("resetBtn");
   zoomInBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(+1); });
 
   // FAB bindings (always available on mobile)
-  collapseBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(!(uiPanel && !uiPanel.classList.contains("hidden"))); });
 
   function panelToggle(){
     if(!uiPanel) return;
     setPanelVisible(!uiPanel.classList.contains("hidden"));
   }
-  fabMenu?.addEventListener("click", (ev)=>{ ev.preventDefault(); panelToggle(); });
 
   function zoomByButtonCenter(dir){
     const factor = (dir > 0) ? 0.80 : 1.25;
@@ -295,8 +259,6 @@ const resetBtn = $("resetBtn");
     scaleBF = bfMul(scaleBF, bfFromNumber(factor));
     requestRender("fabZoom", { preview:true });
   }
-  fabZoomIn?.addEventListener("click", (ev)=>{ ev.preventDefault(); zoomByButtonCenter(+1); });
-  fabZoomOut?.addEventListener("click", (ev)=>{ ev.preventDefault(); zoomByButtonCenter(-1); });
 
   fabPanel?.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
   panelClose?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
@@ -311,20 +273,9 @@ const resetBtn = $("resetBtn");
     if (typeof detectMobile === "function" && detectMobile()) setPanelVisible(false);
   } catch(e) {}
   if (Math.min(innerWidth, innerHeight) <= 520) setPanelVisible(false);
-  /* forceCollapseIfMobile disabled v9.6.5 */
+  /* forceCollapseIfMobile disabled v9.6.6 */
 
   // Panel compact toggle (especially for mobile)
-  function setPanelCompact(on){
-    if (!panelEl) return;
-    panelEl.classList.toggle("compact", !!on);
-    if (panelClose) panelClose.textContent = panelEl.classList.contains("compact") ? "≡" : "×";
-  }
-  panelClose?.addEventListener("click", (ev) => {
-    ev.preventDefault();
-    setPanelCompact(!(panelEl && panelEl.classList.contains("compact")));
-  });
-  // Default: compact on mobile
-  if (detectMobile()) setPanelCompact(true);
   zoomOutBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(-1); });
 
 

@@ -228,3 +228,8 @@ GitHub Pages 手順
 
 ## v9.6.5
 - verFixed更新用スクリプトも削除（参照残りでバグるのを防止）
+
+
+## v9.6.6
+- mobile: panelClose の重複宣言を解消（SyntaxError修正）
+- 未定義の collapseBtn/fabMenu/fabZoomIn/fabZoomOut 参照を削除（ReferenceError予防）
