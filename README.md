@@ -20,16 +20,13 @@ GitHub Pages 手順
 - HQ Render：一発だけ高精細（重い）
 
 
-## v8: Perturbation (fast)
-- Modeで「Perturbation (fast)」を選ぶと、参照軌道（BigInt）+ 差分（float）で高速に描画します。
+## v7.4 additions
+- HQ Render: progressive refinement (step 6→3→2→1)
+- Save PNG button / S key
 
 
-## v8.1
-- 起動時デフォルトを Perturbation (fast) に変更
-- Save PNG ボタン / Sキー
-- HQ Render 段階精細化（step 6→3→2→1）
-
-
-## v8.1.1
-- Perturbation参照軌道でescape判定を追加（BigInt暴走による RangeError を回避）
-- 参照点が外側の場合は通常描画へフォールバック
+## v9.0 DeepNav (BigFloat coords)
+- center/scale を BigFloat(BigInt×2^e) で保持し、超深度で Number が止まる問題を回避します。
+- ある深さを超えると **DeepNav が自動で ON** になり、ホイール/ドラッグでは描画せず座標だけ更新します（高速に潜れます）。
+- DeepNav 中は **Pキー**で軽いプレビュー、または **HQ Render**（段階精細化）で最終描画してください。
+- HUD に `scaleBF log2=...` が出るので、超深度でも深さが把握できます。

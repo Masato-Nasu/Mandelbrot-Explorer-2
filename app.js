@@ -1,4 +1,4 @@
-// Mandelbrot Explorer UltraDeep v8 (stable rewrite)
+// Mandelbrot Explorer UltraDeep v7 (stable rewrite)
 (() => {
   const $ = (id) => document.getElementById(id);
 
@@ -16,6 +16,7 @@
   const autoSettleEl = $("autoSettle");
   const hqBtn = $("hqBtn");
   const saveBtn = $("saveBtn");
+  const deepBtn = $("deepBtn");
   const resetBtn = $("resetBtn");
   const nukeBtn = $("nukeBtn");
 
@@ -39,6 +40,13 @@
   let centerY = 0.0;
   let initialScale = 0;      // float64 (complex per pixel)
   let scaleF = 0;            // float64
+
+  // DeepNav BigFloat camera (prevents "depth ceiling" where Number stops changing)
+  let deepNavEnabled = true;
+  let deepNavActive = false;
+  let centerXBF = bfFromNumber(centerX);
+  let centerYBF = bfFromNumber(centerY);
+  let scaleBF   = bfFromNumber(scaleF); // per-pixel scale in BigFloat
 
   // UltraDeep fixed-point helpers (BigInt)
 // Number -> fixed-point BigInt with arbitrary bits using IEEE-754 decomposition.
@@ -92,6 +100,91 @@ function fixed2f(v, bits){
       v = v >> BigInt(sh);
       bits = 1023;
     }
+
+  // ---- BigFloat (DeepNav) : value = m * 2^e (BigInt mantissa, integer exponent) ----
+  function bfNorm(b){
+    let m = b.m, e = b.e|0;
+    if (m === 0n) return {m:0n, e:0};
+    const abs = (m < 0n) ? -m : m;
+    const bits = abs.toString(2).length;
+    const target = 240; // keep mantissa around this size for speed
+    if (bits > target){
+      const sh = bits - target;
+      const half = 1n << BigInt(sh-1);
+      m = (m + (m>=0n?half:-half)) >> BigInt(sh);
+      e += sh;
+    }
+    return {m, e};
+  }
+
+  function bfFromNumber(n){
+    if (!Number.isFinite(n)) throw new RangeError("bfFromNumber non-finite");
+    if (n === 0) return {m:0n, e:0};
+    const buf = new ArrayBuffer(8);
+    const dv = new DataView(buf);
+    dv.setFloat64(0, n, false);
+    const hi = dv.getUint32(0, false);
+    const lo = dv.getUint32(4, false);
+    const sign = (hi>>>31) ? -1n : 1n;
+    const exp = (hi>>>20) & 0x7ff;
+    const fracHi = hi & 0xFFFFF;
+
+    let mant = (BigInt(fracHi) << 32n) | BigInt(lo);
+    let e2;
+    if (exp === 0){
+      e2 = -1074; // subnormal
+    } else {
+      mant = (1n<<52n) | mant;
+      e2 = exp - 1023 - 52;
+    }
+    return bfNorm({m: sign*mant, e: e2});
+  }
+
+  function bfAdd(a,b){
+    if (a.m===0n) return b;
+    if (b.m===0n) return a;
+    let am=a.m, ae=a.e|0, bm=b.m, be=b.e|0;
+    if (ae > be){
+      const sh = ae - be;
+      if (sh > 4000) return a;
+      bm = bm >> BigInt(sh);
+      return bfNorm({m: am + bm, e: ae});
+    } else if (be > ae){
+      const sh = be - ae;
+      if (sh > 4000) return b;
+      am = am >> BigInt(sh);
+      return bfNorm({m: am + bm, e: be});
+    } else {
+      return bfNorm({m: am + bm, e: ae});
+    }
+  }
+
+  function bfMul(a,b){
+    if (a.m===0n || b.m===0n) return {m:0n,e:0};
+    return bfNorm({m: a.m*b.m, e: (a.e|0)+(b.e|0)});
+  }
+
+  function bfToFixed(a, bits){
+    bits = bits|0;
+    if (a.m===0n) return 0n;
+    const sh = (a.e|0) + bits;
+    if (sh >= 0) return a.m << BigInt(sh);
+    const rsh = BigInt(-sh);
+    const half = 1n << (rsh-1n);
+    return (a.m + (a.m>=0n?half:-half)) >> rsh;
+  }
+
+  function bfToNumberApprox(a){
+    if (a.m===0n) return 0.0;
+    const m = a.m;
+    const e = a.e|0;
+    const abs = (m<0n)?-m:m;
+    const bl = abs.toString(2).length;
+    const take = Math.min(53, bl);
+    const sh = bl - take;
+    const top = (sh>0) ? (m >> BigInt(sh)) : m;
+    return Number(top) * Math.pow(2, e + sh);
+  }
     return Number(v) / Math.pow(2, bits);
   }
 
@@ -101,7 +194,7 @@ function fixed2f(v, bits){
   let workerOK = true;
   try{
     for (let i = 0; i < workerCount; i++) {
-      const w = new Worker("./worker.js?v=v8_" + Date.now().toString(36));
+      const w = new Worker("./worker.js?v=v7_" + Date.now().toString(36));
       w.onerror = (e)=>{ workerOK = false; showErr("[Worker error]\n" + (e.message||"worker failed")); };
       workers.push(w);
     }
@@ -127,17 +220,32 @@ function fixed2f(v, bits){
     if (!initialScale) {
       initialScale = 3.5 / W;
       scaleF = initialScale;
+      scaleBF = bfFromNumber(scaleF);
+      centerXBF = bfFromNumber(centerX);
+      centerYBF = bfFromNumber(centerY);
     }
   }
   window.addEventListener("resize", () => { resize(true); requestRender("resize"); }, { passive:true });
 
   // Iteration heuristic
   function itersForScale(scale){
-    const mag = initialScale / scale;
-    const base = 240 + Math.floor(70 * Math.log(Math.max(1, mag)));
+    // scale is per-pixel complex scale
+    let lnMag = 0;
+    if (deepNavActive || !Number.isFinite(scale) || scale === 0){
+      const absM = (scaleBF.m < 0n) ? -scaleBF.m : scaleBF.m;
+      const mBits = absM === 0n ? 0 : absM.toString(2).length;
+      const log2Scale = (mBits ? (mBits - 1) : -999999) + (scaleBF.e|0);
+      lnMag = Math.log(Math.max(1e-300, initialScale)) - (Math.LN2 * log2Scale);
+      lnMag = Math.max(0, lnMag);
+    } else {
+      const mag = initialScale / scale;
+      lnMag = Math.log(Math.max(1, mag));
+    }
+    const base = 240 + Math.floor(70 * lnMag);
     const cap = Math.max(150, Math.min(30000, parseInt(iterEl?.value || "1400", 10)));
     return Math.max(150, Math.min(cap, base));
   }
+
 
   // Interaction
   let isDragging = false;
@@ -161,10 +269,10 @@ function fixed2f(v, bits){
 
   function schedule(reason){
     clearTimeout(debounce);
-    debounce = setTimeout(() => requestRender(reason, { preview:true }), 35);
+    debounce = setTimeout(() => { if (!deepNavActive) requestRender(reason, { preview:true }); else updateHUD("DeepNav active (press P or HQ)", 0, 0, 0, 0, 0); }, 35);
     if (autoSettleEl?.checked) {
       clearTimeout(settleTimer);
-      settleTimer = setTimeout(() => requestRender("settle", { preview:false }), 220);
+      settleTimer = setTimeout(() => { if (!deepNavActive) requestRender("settle", { preview:false }); }, 220);
     }
   }
 
@@ -183,6 +291,15 @@ function fixed2f(v, bits){
     lastX = p.x; lastY = p.y;
     centerX -= dx * scaleF;
     centerY -= dy * scaleF;
+    // BigFloat pan: centerBF -= dPix * scaleBF
+    centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(-dx), scaleBF));
+    centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(-dy), scaleBF));
+    if (deepNavActive){
+      centerX = bfToNumberApprox(centerXBF);
+      centerY = bfToNumberApprox(centerYBF);
+      updateHUD("DeepNav active (press P or HQ)", 0, 0, 0, 0, 0);
+      return;
+    }
     schedule("pan");
   }, { passive:true });
 
@@ -192,7 +309,6 @@ function fixed2f(v, bits){
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     const {x:px, y:py} = canvasXY(ev);
-    const before = pixelToComplex(px, py);
 
     const base = 0.0080;
     const fine = ev.shiftKey ? 0.25 : 1.0;
@@ -202,23 +318,57 @@ function fixed2f(v, bits){
     const speed = base * fine * turbo * hyper;
     const factor = Math.exp(-dyN * speed);
 
-    // clamp scale
-    scaleF = Math.max(1e-300, Math.min(10, scaleF * factor));
+    const dxPix = (px - W*0.5);
+    const dyPix = (py - H*0.5);
 
-    const after = pixelToComplex(px, py);
-    centerX += (before.x - after.x);
-    centerY += (before.y - after.y);
+    // --- BigFloat camera (robust at extreme depth) ---
+    const scaleBeforeBF = scaleBF;
+    const fBF = bfFromNumber(factor);
+    const scaleAfterBF = bfMul(scaleBF, fBF);
+    const deltaScaleBF = bfAdd(scaleBeforeBF, {m:-scaleAfterBF.m, e:scaleAfterBF.e}); // before - after
+
+    centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(dxPix), deltaScaleBF));
+    centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(dyPix), deltaScaleBF));
+    scaleBF = scaleAfterBF;
+
+    // --- float camera (fast for normal depths) ---
+    const beforeF = scaleF;
+    scaleF = Math.min(10, scaleF * factor);
+    centerX += dxPix * (beforeF - scaleF);
+    centerY += dyPix * (beforeF - scaleF);
+
+    // Activate DeepNav when float stops meaningfully changing (subnormal/zero range).
+    const absM = (scaleBF.m < 0n) ? -scaleBF.m : scaleBF.m;
+    const mBits = absM === 0n ? 0 : absM.toString(2).length;
+    const log2Scale = (mBits ? (mBits - 1) : -999999) + (scaleBF.e|0);
+    deepNavActive = deepNavEnabled && (scaleF === 0 || !Number.isFinite(scaleF) || log2Scale < -1080);
+
+    if (deepNavActive){
+      // keep UI in sync (approx; may show 0 for scaleF at extreme depths)
+      centerX = bfToNumberApprox(centerXBF);
+      centerY = bfToNumberApprox(centerYBF);
+      scaleF  = bfToNumberApprox(scaleBF);
+      updateHUD("DeepNav active (press P or HQ)", 0, 0, 0, 0, 0);
+      // do not auto-render while navigating deep
+      return;
+    }
+
     schedule("zoom");
   }, { passive:false });
 
   window.addEventListener("keydown", (ev) => {
     if (ev.key.toLowerCase() === "r") doReset();
     if (ev.key.toLowerCase() === "s") savePNG();
+    if (ev.key.toLowerCase() === "p") { if (deepNavActive) requestRender("preview (P)", { preview:false, forceStep: 8 }); }
   }, { passive:true });
 
   function doReset(){
     centerX = -0.5; centerY = 0.0;
     scaleF = initialScale || (3.5 / Math.max(1, W));
+    centerXBF = bfFromNumber(centerX);
+    centerYBF = bfFromNumber(centerY);
+    scaleBF = bfFromNumber(scaleF);
+    deepNavActive = false;
     requestRender("reset", { preview:false });
   }
 
@@ -244,7 +394,7 @@ function fixed2f(v, bits){
       a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 4000);
     }catch(e){
-      showErr("[savePNG]\n" + (e && (e.stack || e.message) || e));
+      showErr("[savePNG]\n" + ((e && (e.stack || e.message)) || e));
     }
   }
 
@@ -252,6 +402,12 @@ function fixed2f(v, bits){
   nukeBtn?.addEventListener("click", () => { location.href = "./reset.html"; });
 
   saveBtn?.addEventListener("click", () => { savePNG(); });
+  deepBtn?.addEventListener("click", () => {
+    deepNavEnabled = !deepNavEnabled;
+    if (deepBtn) deepBtn.textContent = deepNavEnabled ? "DeepNav" : "DeepNav OFF";
+    updateHUD("toggle DeepNav", 0, 0, 0, 0, 0);
+  });
+
 
   hqBtn?.addEventListener("click", () => {
     // 段階的に高精細化：まず軽く出してから step を下げていく（最終的に step=1）
@@ -277,22 +433,28 @@ function fixed2f(v, bits){
   }
 
   function updateHUD(reason, ms, iters, bitsUsed, step, internal){
+    const absM = (scaleBF.m < 0n) ? -scaleBF.m : scaleBF.m;
+    const mBits = absM === 0n ? 0 : absM.toString(2).length;
+    const log2Scale = (mBits ? (mBits - 1) : -999999) + (scaleBF.e|0);
     const mag = initialScale / scaleF;
     hud.textContent =
 `center = (${centerX.toPrecision(16)}, ${centerY.toPrecision(16)})
 scale  = ${scaleF.toExponential(6)} (magnification ≈ ${mag.toExponential(3)}x)
+scaleBF= log2=${log2Scale}  e2=${scaleBF.e}  mBits~${mBits}
+DeepNav= ${deepNavActive?"ON":"OFF"}
 mode   = ${modeEl?.value || "ultradeep"}   workers=${workerCount} (ok=${workerOK})
-flag   = ${(modeEl?.value||"ultradeep")==="perturb" ? "PERTURBATION ACTIVE" : ""}
 iters  = ${iters}   bits=${bitsUsed}   step=${step}   internalRes=${internal}
 last   = ${ms|0} ms   ${reason||""}`;
   }
+
 
   function renderStandard(token, opts){
     const start = performance.now();
     const internal = parseFloat(resEl?.value || "0.70");
     const preview = !!(opts && opts.preview) && (previewEl?.checked ?? true);
     const baseStep = parseInt(stepEl?.value || "2", 10);
-    const step = (opts && opts.hq) ? 1 : (preview ? Math.min(16, Math.max(6, baseStep*3)) : baseStep);
+    let step = ((opts && opts.hq) ? 1 : (preview ? Math.min(16, Math.max(6, baseStep*3)) : baseStep));
+    if (opts && Number.isFinite(opts.forceStep)) step = Math.max(1, opts.forceStep|0);
     const iters = itersForScale(scaleF);
 
     const img = ctx.createImageData(W, H);
@@ -355,13 +517,14 @@ last   = ${ms|0} ms   ${reason||""}`;
 
     // choose step
     const baseStep = parseInt(stepEl?.value || "2", 10);
-    const step = (opts && opts.hq) ? 1 : (preview ? Math.min(16, Math.max(6, baseStep*3)) : baseStep);
+    let step = ((opts && opts.hq) ? 1 : (preview ? Math.min(16, Math.max(6, baseStep*3)) : baseStep));
+    if (opts && Number.isFinite(opts.forceStep)) step = Math.max(1, opts.forceStep|0);
 
     // fixed-point mapping
     // Use baseBits for center+scale mapping then downshift to bitsUsed to preserve location
-    const centerXFix = f2fixed(centerX, baseBits);
-    const centerYFix = f2fixed(centerY, baseBits);
-    const scaleFix = f2fixed(scaleF, baseBits);
+    const centerXFix = bfToFixed(centerXBF, baseBits);
+    const centerYFix = bfToFixed(centerYBF, baseBits);
+    const scaleFix = bfToFixed(scaleBF, baseBits);
 
     const halfW = BigInt(Math.floor(W/2));
     const halfH = BigInt(Math.floor(H/2));
@@ -428,148 +591,12 @@ done++;
     }
   }
 
-  
-  // ---- Perturbation (fast) ----
-  function fixedToFloatApprox(v, bits){
-    bits = bits|0;
-    if (v === 0n) return 0.0;
-    // value = v / 2^bits, but v may be huge; downshift to 52 bits for safe Number conversion
-    if (bits <= 52) return Number(v) / Math.pow(2, bits);
-    const sh = bits - 52;
-    const vv = v >> BigInt(sh);
-    return Number(vv) / Math.pow(2, 52);
-  }
-
-  function buildReferenceOrbit(cRefX, cRefY, bits, maxIter){
-    // BigInt fixed-point orbit for reference point, but store as Float64Array (approx) for fast perturbation.
-    // 参照点が外側で早期に発散する場合、BigIntが爆発して RangeError になり得るため、
-    // ここで escape 判定して打ち切ります（その場合は perturbation を使わずフォールバック）。
-    const cx = f2fixed(cRefX, bits);
-    const cy = f2fixed(cRefY, bits);
-    let x = 0n, y = 0n;
-
-    const orbit = new Float64Array(maxIter * 2);
-    const escape = 4n << BigInt(bits);
-
-    let validIters = 0;
-    for (let i=0; i<maxIter; i++){
-      orbit[i*2]   = fixedToFloatApprox(x, bits);
-      orbit[i*2+1] = fixedToFloatApprox(y, bits);
-      validIters = i + 1;
-
-      const x2 = (x * x) >> BigInt(bits);
-      const y2 = (y * y) >> BigInt(bits);
-      if (x2 + y2 > escape) {
-        return { orbit, validIters, escaped: true };
-      }
-      const xy = (x * y) >> BigInt(bits);
-
-      const nx = x2 - y2 + cx;
-      const ny = (2n * xy) + cy;
-      x = nx; y = ny;
-    }
-    return { orbit, validIters, escaped: false };
-  }
-
-  function renderPerturbation(token, opts){
-    const start = performance.now();
-    const preview = !!(opts && opts.preview) && (previewEl?.checked ?? true);
-    const baseBits = parseInt(bitsEl?.value || "512", 10) | 0;
-    const iters = itersForScale(scaleF);
-    const internal = parseFloat(resEl?.value || "0.70");
-
-    // preview: bits落として参照軌道を軽く（精度は落ちるが探索は速い）
-    const bitsUsed = (preview ? Math.min(baseBits, 320) : baseBits) | 0;
-
-    const baseStep = parseInt(stepEl?.value || "2", 10);
-    const step = (opts && opts.hq) ? 1 : (preview ? Math.min(16, Math.max(6, baseStep*3)) : baseStep);
-
-    if (!workerOK || workers.length === 0) {
-      renderStandard(token, opts);
-      return;
-    }
-
-    // reference point: current center (cursor-zoomで中心が変わるので「カーソルへ吸い込む」挙動と両立)
-    const cRefX = centerX;
-    const cRefY = centerY;
-
-    // build orbit once (BigInt, but only for one point)
-    const ref = buildReferenceOrbit(cRefX, cRefY, bitsUsed, iters);
-    const orbit = ref.orbit;
-    if (ref.escaped || ref.validIters < iters) {
-      // 参照点が外側で発散 → perturbation が成立しないので通常描画へ
-      updateHUD("perturb ref escaped -> fallback", performance.now()-start, iters, bitsUsed, step, internal.toFixed(2));
-      renderStandard(token, opts);
-      return;
-    }
-
-    // push orbit to all workers (copy per worker, but once per render)
-    for (const w of workers) {
-      try {
-        w.postMessage({ type:"setOrbit", token, iters, orbitBuffer: orbit.buffer });
-      } catch {}
-    }
-
-    // float view mapping for dc
-    const xminF = centerX - (W*0.5)*scaleF;
-    const yminF = centerY - (H*0.5)*scaleF;
-
-    clear();
-    const strip = Math.max(24, Math.floor(H / (workerCount * 5)));
-    const jobs = [];
-    for (let y0=0; y0<H; y0+=strip) jobs.push({y0, rows: Math.min(strip, H-y0)});
-
-    let done = 0;
-    const onMsg = (ev) => {
-      const m = ev.data;
-      if (!m || m.token !== token || m.type !== "strip") return;
-
-      const data = new Uint8ClampedArray(m.buffer);
-      const rowsFromData = Math.floor(data.length / (W * 4));
-      if (rowsFromData <= 0 || rowsFromData * W * 4 !== data.length) return;
-      if (m.startY + rowsFromData > H) return;
-
-      const img = new ImageData(data, W, rowsFromData);
-      ctx.putImageData(img, 0, m.startY);
-
-      done++;
-      if (done >= jobs.length) {
-        for (const wk of workers) wk.removeEventListener("message", onMsg);
-        if (token !== renderToken) return;
-        updateHUD("perturb "+(preview?"preview":"full"), performance.now()-start, iters, bitsUsed, step, internal.toFixed(2));
-      }
-    };
-    for (const wk of workers) wk.addEventListener("message", onMsg);
-
-    for (let i=0;i<jobs.length;i++){
-      const w = workers[i % workerCount];
-      const j = jobs[i];
-      w.postMessage({
-        type:"jobPert",
-        token,
-        W,
-        startY: j.y0,
-        rows: j.rows,
-        step,
-        maxIter: iters,
-        xminF,
-        yminF,
-        scaleF,
-        cRefX,
-        cRefY
-      });
-    }
-  }
-function requestRender(reason="", opts={}){
+  function requestRender(reason="", opts={}){
     resize(false);
     const token = ++renderToken;
     try{
-      const mode = (modeEl?.value || "ultradeep");
-      if (mode === "standard") {
+      if ((modeEl?.value || "ultradeep") === "standard") {
         renderStandard(token, opts);
-      } else if (mode === "perturb") {
-        // Perturbation: 超深度でも軽く（参照軌道はBigIntで1点だけ）
-        renderPerturbation(token, opts);
       } else {
         // autoBits: keep image stable at deep zoom
         if (autoBitsEl?.checked) {
