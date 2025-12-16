@@ -148,7 +148,7 @@
   // --- Mobile Mode (lightweight defaults + safer interactions) ---
   let mobileMode = false;
   
-  // Mobile FAB + panel collapse (v9.6.7)
+  // Mobile FAB + panel collapse (v9.6.8)
   var uiPanel = document.getElementById("uiPanel");
   
 const mobileModeBtn = $("mobileModeBtn");
@@ -288,7 +288,7 @@ const resetBtn = $("resetBtn");
     if (typeof detectMobile === "function" && detectMobile()) setPanelVisible(false);
   } catch(e) {}
   if (Math.min(innerWidth, innerHeight) <= 520) setPanelVisible(false);
-  /* forceCollapseIfMobile disabled v9.6.7 */
+  /* forceCollapseIfMobile disabled v9.6.8 */
 
   // Panel compact toggle (especially for mobile)
   zoomOutBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(-1); });

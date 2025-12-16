@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0f" />
-  <title>Mandelbrot Explorer v9.6.7 Kids UI</title>
+  <title>Mandelbrot Explorer v9.6.8 Kids UI</title>
   <link rel="icon" href="./favicon.ico" />
   <style>
     html,body{margin:0;height:100%;background:#0b0b0f;overflow:hidden}
@@ -248,7 +248,7 @@
   background:rgba(0,0,0,.55);
   color:#fff;
   font:900 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
-  z-index:2147483601;
+  z-index:2147483647;
   display:none;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -453,5 +453,48 @@
 </div>
 
 <button id="fabPanel" title="操作パネル" aria-label="操作パネル">？</button>
+
+<script>
+/* PANEL_TOGGLE_INLINE_V968: works even if app.js is cached or throws */
+(function(){
+  function setPanelVisible(on){
+    var p = document.getElementById('uiPanel');
+    if(!p) return;
+    p.classList.toggle('hidden', !on);
+  }
+  function togglePanel(){
+    var p = document.getElementById('uiPanel');
+    if(!p) return;
+    setPanelVisible(p.classList.contains('hidden'));
+  }
+  window.__togglePanel = togglePanel;
+
+  function bind(){
+    var fab = document.getElementById('fabPanel');
+    var closeBtn = document.getElementById('panelClose');
+    if(fab){
+      fab.onclick = function(ev){ ev && ev.preventDefault && ev.preventDefault(); togglePanel(); };
+      fab.addEventListener('touchend', function(ev){ ev.preventDefault(); togglePanel(); }, {passive:false});
+      fab.style.pointerEvents = 'auto';
+    }
+    if(closeBtn){
+      closeBtn.onclick = function(ev){ ev && ev.preventDefault && ev.preventDefault(); setPanelVisible(false); };
+      closeBtn.addEventListener('touchend', function(ev){ ev.preventDefault(); setPanelVisible(false); }, {passive:false});
+    }
+    // mobile: start hidden
+    try{
+      if (window.matchMedia && matchMedia('(max-width: 520px)').matches) setPanelVisible(false);
+    }catch(e){}
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bind, {once:true});
+  }else{
+    bind();
+  }
+  window.addEventListener('pageshow', function(){ try{ bind(); }catch(e){} }, {passive:true});
+})();
+</script>
+
 </body>
 </html>
