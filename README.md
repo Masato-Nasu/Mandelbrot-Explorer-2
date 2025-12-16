@@ -90,3 +90,7 @@ GitHub Pages 手順
 - DeepNavの状態表示を強化：左上に『DEEPNAV ACTIVE/STANDBY/OFF』バッジ
 - Always ON 追加：チェックすると深度に関係なくDeepNavを常時active（探索中の座標更新がBigFloat優先）
   - 注意：DeepNav常時activeは“描画”より“潜航”優先の挙動になります（綺麗な止め絵はHQ Render推奨）
+
+
+## v9.3.2
+- Fix: deepAlways初期化順序によるReferenceError（Temporal Dead Zone）を解消

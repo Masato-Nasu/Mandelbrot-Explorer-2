@@ -170,8 +170,8 @@
   let deepNavEnabled = true;
   let deepNavActive = false;
     if (deepAlways && deepNavEnabled) deepNavActive = true;
-  let deepAlways = true; // force DeepNav active at all depths
-  let lastDeepActive = false;
+  var deepAlways = true; // force DeepNav active at all depths
+  var lastDeepActive = false;
   let followEnabled = true;
   let followTimer = null;
   let centerXBF = bfFromNumber(centerX);
