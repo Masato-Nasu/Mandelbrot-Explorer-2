@@ -22,3 +22,9 @@ GitHub Pages 手順
 
 ## v8: Perturbation (fast)
 - Modeで「Perturbation (fast)」を選ぶと、参照軌道（BigInt）+ 差分（float）で高速に描画します。
+
+
+## v8.1
+- 起動時デフォルトを Perturbation (fast) に変更
+- Save PNG ボタン / Sキー
+- HQ Render 段階精細化（step 6→3→2→1）
