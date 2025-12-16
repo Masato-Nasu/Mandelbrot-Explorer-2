@@ -305,6 +305,38 @@
   /* phone: start hidden, show via ? */
   #uiPanel{ max-height: 60vh; overflow:auto; }
 }
+
+/* v9.6.11 UI cleanup */
+.panel {
+  background: rgba(16,16,16,0.78) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+}
+.helpMini {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0.92;
+}
+.helpMini .helpTitle {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.helpMini .helpLine {
+  opacity: 0.9;
+}
+@media (max-width: 700px) {
+  .panel {
+    max-height: 44vh;
+    overflow: auto;
+  }
+  .sub {
+    font-size: 12px;
+    line-height: 1.25;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -334,52 +366,6 @@
         <input id="zoomSpeed" type="range" min="0.05" max="2.50" step="0.01" value="0.65" />
       </div>
 </div>
-        <details class="advanced"><summary>設定</summary>
-<div class="row">
-      <label>モード</label>
-      <select id="mode">
-        <option value="ultradeep" selected>UltraDeep (BigInt)</option>
-        <option value="standard">Standard (float64)</option>
-      </select>
-    </div>
-    <div class="row">
-      <label>内部解像度</label>
-      <input id="res" type="range" min="0.30" max="1.00" step="0.05" value="0.70" />
-    </div>
-    <div class="row">
-      <label>step（粗さ）</label>
-      <select id="step">
-        <option value="1">1 (最高画質)</option>
-        <option value="2" selected>2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="6">6</option>
-        <option value="8">8</option>
-        <option value="12">12</option>
-      </select>
-    </div>
-    <div class="row">
-      <label>反復上限</label>
-      <input id="iterCap" type="number" min="150" max="30000" step="50" value="1400" />
-    </div>
-    <div class="row">
-      <label>bits（精度）</label>
-      <input id="bits" type="number" min="96" max="8192" step="64" value="512" />
-    </div>
-    <div class="row">
-      <label>Auto bits</label>
-      <input id="autoBits" type="checkbox" checked />
-    </div>
-    <div class="row">
-      <label>操作中プレビュー</label>
-      <input id="preview" type="checkbox" checked />
-    </div>
-    <div class="row">
-      <label>停止後に高精細</label>
-      <input id="autoSettle" type="checkbox" />
-    </div>
-    </details>
-
 <div class="hint">
   【スマホ】
 ① ＋／−：ズーム
