@@ -298,6 +298,8 @@ function fixed2f(v, bits){
   let activePid = null;
   let downX = 0, downY = 0, moved = false, downT = 0;
   let lastX = 0, lastY = 0;
+  let isMouseDragging = false;
+  let mouseButtonMask = 0;
   let renderToken = 0;
   // HQ sequence control (so you can keep exploring after a HQ render)
   let hqActive = false;
@@ -350,6 +352,8 @@ function fixed2f(v, bits){
   }
 
   canvas.addEventListener("pointerdown", (ev) => {
+    // Mouse drag uses dedicated mouse events (more reliable across browsers)
+    if (ev.pointerType === "mouse") return;
     ev.preventDefault();
     if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     hqOnUserInput();
@@ -409,6 +413,77 @@ function fixed2f(v, bits){
   canvas.addEventListener("lostpointercapture", (ev) => { isDragging=false; activePid=null; }, { passive:true });
     canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
   canvas.addEventListener("auxclick", (ev) => ev.preventDefault());
+
+  // Mouse drag fallback (LEFT or MIDDLE / wheel-press). More reliable than pointer events for mouse.
+  function mouseDownOk(ev){
+    // button: 0=left, 1=middle
+    return (ev.button === 0 || ev.button === 1);
+  }
+
+  canvas.addEventListener("mousedown", (ev) => {
+    if (!mouseDownOk(ev)) return;
+    ev.preventDefault();
+    if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
+    hqOnUserInput();
+
+    // stop browser autoscroll on middle click
+    mouseButtonMask = (ev.button === 0) ? 1 : 4;
+
+    isMouseDragging = true;
+    moved = false;
+    downT = performance.now();
+
+    const p = canvasXY(ev);
+    downX = p.x; downY = p.y;
+    lastX = p.x; lastY = p.y;
+
+    // capture mouse outside canvas while dragging
+    window.addEventListener("mousemove", onMouseMove, { passive:false });
+    window.addEventListener("mouseup", onMouseUp, { passive:false, once:true });
+  }, { passive:false });
+
+  function onMouseMove(ev){
+    if (!isMouseDragging) return;
+    // If button released (some environments), stop immediately
+    if ((ev.buttons & mouseButtonMask) === 0) { onMouseUp(ev); return; }
+
+    ev.preventDefault();
+    const p = canvasXY(ev);
+    const dx = p.x - lastX;
+    const dy = p.y - lastY;
+
+    if (!moved) {
+      const ddx = (p.x - downX), ddy = (p.y - downY);
+      if (ddx*ddx + ddy*ddy > 64) moved = true; // 8px
+    }
+
+    lastX = p.x; lastY = p.y;
+
+    centerX -= dx * scaleF;
+    centerY -= dy * scaleF;
+
+    centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(-dx), scaleBF));
+    centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(-dy), scaleBF));
+
+    if (deepNavActive){
+      centerX = bfToNumberApprox(centerXBF);
+      centerY = bfToNumberApprox(centerYBF);
+      updateHUD("DeepNav active (log2>|"+DEEPNAV_TRIGGER_LOG2+"|)  Follow/HQ", 0, 0, 0, 0, 0);
+      scheduleFollowPreview("pan");
+      return;
+    }
+    schedule("pan");
+  }
+
+  function onMouseUp(ev){
+    if (!isMouseDragging) return;
+    ev?.preventDefault?.();
+    isMouseDragging = false;
+    mouseButtonMask = 0;
+    window.removeEventListener("mousemove", onMouseMove, { passive:false });
+    // single click does nothing (CAD style)
+  }
+
 canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();

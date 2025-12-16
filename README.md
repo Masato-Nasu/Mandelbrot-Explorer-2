@@ -123,3 +123,8 @@ GitHub Pages 手順
 - ドラッグ修正：active pointer idでガード／ボタン解除(ev.buttons==0)で即停止／lostpointercapture対応
 - CAD式：シングルクリックで中心移動を廃止（誤操作防止）、中心移動はダブルクリックのみに
 - 中ボタン（ホイール押し込み）でのブラウザ自動スクロールを抑制（auxclick/contextmenu preventDefault）
+
+
+## v9.4.5
+- ドラッグが効かない対策：マウス操作は pointer ではなく mouse イベントで専用実装（左/中ボタン）
+- canvas に touch-action:none + overscroll-behavior を追加（ブラウザのジェスチャ干渉を抑制）
