@@ -1,4 +1,4 @@
-// Mandelbrot Explorer UltraDeep v7 (stable rewrite)
+// Mandelbrot Explorer UltraDeep v8 (HQ Capture)
 (() => {
   // ---- BigFloat (DeepNav) : value = m * 2^e (BigInt mantissa, integer exponent) ----
   function bfNorm(b){
@@ -1013,6 +1013,53 @@ last   = ${ms|0} ms   ${reason||""}`;
 
   resize(true);
   requestRender("boot", {preview:false});
+
+  // --- HQ撮影機能 (Camボタン用) ---
+  function captureHQ(){
+    showToast("高精細レンダリング中...");
+    
+    // 今の設定を記憶しておく
+    const oldRes = resEl ? resEl.value : "0.70";
+    const oldStep = stepEl ? stepEl.value : "2";
+
+    // 一時的に最高画質設定にする
+    if(resEl) resEl.value = "1.00";
+    if(stepEl) stepEl.value = "1";
+    resize(true); // キャンバスサイズをピクセル等倍に合わせる
+
+    // HQレンダリングをリクエスト
+    requestRender("HQ-Capture", {
+      preview: false,
+      forceRes: 1.0,
+      forceStep: 1,
+      // 描画が終わったら呼ばれる
+      onDone: () => {
+        // 少し待ってから保存（描画直後のチラつき防止）
+        setTimeout(() => {
+          savePNG().then(() => {
+            showToast("保存しました");
+            // 設定を元に戻す
+            if(resEl) resEl.value = oldRes;
+            if(stepEl) stepEl.value = oldStep;
+            resize(true);
+            requestRender("restore", {preview:true});
+          });
+        }, 100);
+      }
+    });
+  }
+
+  // カメラボタン（追加したfabCam）に割り当て
+  const fabCam = document.getElementById("fabCam");
+  if(fabCam){
+    const handleCam = (ev) => {
+      ev.preventDefault();
+      captureHQ();
+    };
+    fabCam.addEventListener("click", handleCam);
+    fabCam.addEventListener("touchend", handleCam, {passive:false});
+  }
+
 })();
 
 // --- PWA Service Worker Registration ---

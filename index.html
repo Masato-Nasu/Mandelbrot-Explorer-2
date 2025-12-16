@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0f" />
-  <title>Mandelbrot Explorer v9.6.10 Kids UI</title>
+  <title>Mandelbrot Explorer v9.6.11 HQ Cam</title>
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="favicon.ico" />
@@ -79,8 +79,13 @@
       border-radius:10px; padding:2px 6px; margin-right: 6px; font-weight: bold;
     }
 
+    /* DEEPNAV BADGE - 修正: 中央上部に配置 */
     #deepBadge{
-      position:fixed; left:10px; top:10px; z-index:9998;
+      position:fixed; 
+      top: 12px;
+      left: 50%; 
+      transform: translateX(-50%); /* 中央揃え */
+      z-index:9998;
       font: 700 12px/1.0 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       letter-spacing: .08em;
       padding:8px 10px;
@@ -91,12 +96,14 @@
       user-select:none;
       pointer-events:none;
       text-transform: uppercase;
+      white-space: nowrap;
     }
     #deepBadge.on{ background: rgba(30,140,60,0.32); color:#eaffef; border-color: rgba(60,255,120,0.35); }
     #deepBadge.standby{ background: rgba(0,0,0,0.35); color:#d9d9d9; border-color: rgba(255,255,255,0.18); }
     #deepBadge.off{ background: rgba(140,30,30,0.32); color:#ffecec; border-color: rgba(255,120,120,0.35); }
+    
     #toast{
-      position:fixed; left:50%; top:20px; transform:translateX(-50%);
+      position:fixed; left:50%; top:50px; transform:translateX(-50%);
       z-index:9999;
       padding:10px 14px;
       border-radius:12px;
@@ -137,6 +144,7 @@
       font:800 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
     }
     #mobileFab .fab:active{ transform: translateY(1px); }
 
@@ -175,7 +183,7 @@
 <div id="uiPanel" class="panel">
   <div class="kidsTop">
     <div class="kidsTitle">Mandelbrot Explorer</div>
-    <div class="kidsSub">UltraDeep v9.6.10</div>
+    <div class="kidsSub">UltraDeep v9.6.11</div>
   </div>
   
   <div class="row">
@@ -231,6 +239,7 @@
 <div id="mobileFab" aria-hidden="false">
   <button id="fabZoomOut" class="fab" title="ズームアウト">−</button>
   <button id="fabZoomIn" class="fab" title="ズームイン">＋</button>
+  <button id="fabCam" class="fab" title="撮影（きれいに保存）" style="font-size:22px;">📷</button>
 </div>
 
 <button id="fabPanel" title="操作パネル" aria-label="操作パネル">？</button>
@@ -242,8 +251,8 @@
     <div class="helpBody">
       <div class="card"><div><span class="k">ドラッグ</span>移動（パン）</div></div>
       <div class="card"><div><span class="k">クリック</span>中心合わせ</div><div><span class="k">ダブルクリック</span>中心合わせ＋ズームイン</div></div>
-      <div class="card"><div><span class="k">きれいに描く</span>止め絵を高精細で仕上げ</div><div><span class="k">Save PNG / S</span>画像として保存</div></div>
-      <div class="card"><div><span class="k">超深度</span>超深度対応（ONなら深い領域で自動的にDeepNavに移行）</div><div><span class="k">Reset / R</span>初期位置へ</div></div>
+      <div class="card"><div><span class="k">📷ボタン</span>高画質で画像を保存</div><div><span class="k">Save PNG</span>現在の画質で保存</div></div>
+      <div class="card"><div><span class="k">DeepNav</span>超深度対応モード</div><div><span class="k">Reset</span>初期位置へ</div></div>
       <div style="margin-top:10px;font-size:12px;opacity:0.8">
         <b>スマホ</b>：＋／−でズーム／1本指ドラッグで移動<br>
         <b>PC</b>：ホイールでズーム／左ドラッグで移動
@@ -265,7 +274,7 @@
     window.addEventListener('error', (e)=> showErr('[window.error]\n'+e.message));
     window.addEventListener('unhandledrejection', (e)=> showErr('[unhandledrejection]\n'+e.reason));
 
-    const build = '20251214_v7_' + Date.now().toString(36);
+    const build = '20251214_v8_' + Date.now().toString(36);
     const s = document.createElement('script');
     s.src = './app.js?v=' + build; 
     s.defer = true;

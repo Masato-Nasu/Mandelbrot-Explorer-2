@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mandelbrot-pwa-v2';
+const CACHE_NAME = 'mandelbrot-pwa-v3-cam';
 const urlsToCache = [
   './',
   './index.html',
