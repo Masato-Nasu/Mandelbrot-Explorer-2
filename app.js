@@ -376,11 +376,11 @@ function fixed2f(v, bits){
     if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     const {x:px, y:py} = canvasXY(ev);
 
-    const base = 0.0022;
-    const zspd = Math.max(0.01, Math.min(3.0, parseFloat(zoomSpeedEl?.value || "0.08")));
+    const base = 0.0045;
+    const zspd = Math.max(0.01, Math.min(3.0, parseFloat(zoomSpeedEl?.value || "0.35")));
     let dyN = ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
     // 一部デバイスでdeltaが極端に大きく出るので、ズームが跳ねないように抑制
-    dyN = Math.sign(dyN) * Math.min(160, Math.abs(dyN));
+    dyN = Math.sign(dyN) * Math.min(240, Math.abs(dyN));
     const speed = base * zspd;
     const factor = Math.exp(-dyN * speed);
 
