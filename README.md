@@ -183,3 +183,8 @@ GitHub Pages 手順
 - スマホ起動エラー修正：Mobile Mode 自動適用を遅延実行（初期化完了後）
 - renderToken のTDZを回避（var化）
 - 更新確認：右下に v9.5.6 build を表示
+
+
+## v9.5.7
+- スマホUIの重なり対策：ボタンを1列化、パネルをスクロール可能に、safe-area対応
+- build stamp: 2025-12-16T09:50:51Z
