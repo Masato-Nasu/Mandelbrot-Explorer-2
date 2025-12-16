@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0f" />
-  <title>Mandelbrot Explorer v9.6.11 HQ Cam</title>
+  <title>Mandelbrot Explorer v9.6.12</title>
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="favicon.ico" />
@@ -79,12 +79,12 @@
       border-radius:10px; padding:2px 6px; margin-right: 6px; font-weight: bold;
     }
 
-    /* DEEPNAV BADGE - 修正: 中央上部に配置 */
+    /* DEEPNAV BADGE */
     #deepBadge{
       position:fixed; 
       top: 12px;
       left: 50%; 
-      transform: translateX(-50%); /* 中央揃え */
+      transform: translateX(-50%);
       z-index:9998;
       font: 700 12px/1.0 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       letter-spacing: .08em;
@@ -152,6 +152,7 @@
       #mobileFab{ display:flex; }
     }
 
+    /* ? Button (Always Visible) */
     #fabPanel{
       position:fixed;
       right:12px;
@@ -163,14 +164,12 @@
       color:#fff;
       font:900 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
       z-index:2147483601;
-      display:none;
+      display:block; /* Always show help button */
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
+      cursor: pointer;
     }
     #fabPanel:active{ transform: translateY(1px); }
-    @media (max-width: 520px){
-      #fabPanel{ display:block; }
-    }
   </style>
 </head>
 <body>
@@ -183,7 +182,7 @@
 <div id="uiPanel" class="panel">
   <div class="kidsTop">
     <div class="kidsTitle">Mandelbrot Explorer</div>
-    <div class="kidsSub">UltraDeep v9.6.11</div>
+    <div class="kidsSub">UltraDeep v9.6.12</div>
   </div>
   
   <div class="row">
@@ -198,8 +197,7 @@
     <label>操作</label>
     <div class="ctrl">
        <button id="resetBtn" class="pill">Reset</button>
-       <button id="hqBtn" class="pill">HQ</button>
-       <button id="saveBtn" class="pill">Save</button>
+       <button id="panelCamBtn" class="pill" style="font-weight:bold; color:#88ffbb; border-color:#88ffbb;">📷 撮影</button>
     </div>
   </div>
 
@@ -208,7 +206,6 @@
     <div class="ctrl">
       <button id="zoomOutBtn" class="pill" title="ズームアウト">−</button>
       <button id="zoomInBtn" class="pill" title="ズームイン">＋</button>
-      <span class="tiny">（指はドラッグ移動）</span>
     </div>
   </div>
 
@@ -239,7 +236,7 @@
 <div id="mobileFab" aria-hidden="false">
   <button id="fabZoomOut" class="fab" title="ズームアウト">−</button>
   <button id="fabZoomIn" class="fab" title="ズームイン">＋</button>
-  <button id="fabCam" class="fab" title="撮影（きれいに保存）" style="font-size:22px;">📷</button>
+  <button id="fabCam" class="fab" title="撮影" style="font-size:22px;">📷</button>
 </div>
 
 <button id="fabPanel" title="操作パネル" aria-label="操作パネル">？</button>
@@ -251,7 +248,7 @@
     <div class="helpBody">
       <div class="card"><div><span class="k">ドラッグ</span>移動（パン）</div></div>
       <div class="card"><div><span class="k">クリック</span>中心合わせ</div><div><span class="k">ダブルクリック</span>中心合わせ＋ズームイン</div></div>
-      <div class="card"><div><span class="k">📷ボタン</span>高画質で画像を保存</div><div><span class="k">Save PNG</span>現在の画質で保存</div></div>
+      <div class="card"><div><span class="k">📷 撮影</span>現在の画面を高画質で画像保存</div></div>
       <div class="card"><div><span class="k">DeepNav</span>超深度対応モード</div><div><span class="k">Reset</span>初期位置へ</div></div>
       <div style="margin-top:10px;font-size:12px;opacity:0.8">
         <b>スマホ</b>：＋／−でズーム／1本指ドラッグで移動<br>
@@ -262,7 +259,6 @@
 </div>
 
 <script>
-  // Error handling bootloader
   (function(){
     const errBox = document.getElementById('errBox');
     function showErr(t){
@@ -274,16 +270,15 @@
     window.addEventListener('error', (e)=> showErr('[window.error]\n'+e.message));
     window.addEventListener('unhandledrejection', (e)=> showErr('[unhandledrejection]\n'+e.reason));
 
-    const build = '20251214_v8_' + Date.now().toString(36);
+    const build = '20251214_v9_' + Date.now().toString(36);
     const s = document.createElement('script');
     s.src = './app.js?v=' + build; 
     s.defer = true;
     document.head.appendChild(s);
   })();
 
-  // Help Overlay Logic
   (() => {
-    const btn = document.getElementById('fabPanel'); // "?" button opens help
+    const btn = document.getElementById('fabPanel');
     const ov = document.getElementById('helpOverlay');
     const close = document.getElementById('helpClose');
     if (!btn || !ov) return;

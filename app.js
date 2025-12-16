@@ -1,12 +1,12 @@
-// Mandelbrot Explorer UltraDeep v8 (HQ Capture)
+// Mandelbrot Explorer UltraDeep v9 (Universal Cam)
 (() => {
-  // ---- BigFloat (DeepNav) : value = m * 2^e (BigInt mantissa, integer exponent) ----
+  // ---- BigFloat (DeepNav) ----
   function bfNorm(b){
     let m = b.m, e = b.e|0;
     if (m === 0n) return {m:0n, e:0};
     const abs = (m < 0n) ? -m : m;
     const bits = abs.toString(2).length;
-    const target = 240; // keep mantissa around this size for speed
+    const target = 240;
     if (bits > target){
       const sh = bits - target;
       const half = 1n << BigInt(sh-1);
@@ -27,15 +27,9 @@
     const sign = (hi>>>31) ? -1n : 1n;
     const exp = (hi>>>20) & 0x7ff;
     const fracHi = hi & 0xFFFFF;
-
     let mant = (BigInt(fracHi) << 32n) | BigInt(lo);
     let e2;
-    if (exp === 0){
-      e2 = -1074; // subnormal
-    } else {
-      mant = (1n<<52n) | mant;
-      e2 = exp - 1023 - 52;
-    }
+    if (exp === 0){ e2 = -1074; } else { mant = (1n<<52n) | mant; e2 = exp - 1023 - 52; }
     return bfNorm({m: sign*mant, e: e2});
   }
 
@@ -86,14 +80,9 @@
   }
 
   const $ = (id) => document.getElementById(id);
-
-  // Safe element handles (mobile panel)
-  const panelCloseEl = document.getElementById('panelCloseEl');
-  const fabPanelEl = document.getElementById('fabPanelEl') || document.getElementById('helpBtn');
-  const fabEl = document.getElementById('fabEl') || document.getElementById('helpBtn') || document.getElementById('fabPanel');
   const canvas = $("c");
 
-  // PANEL_SHOWHIDE_JS_V967 (late-binding; works even if app.js loads before body)
+  // Panel control logic
   function setPanelVisible(on){
     const p = document.getElementById("uiPanel");
     if(!p) return;
@@ -104,30 +93,13 @@
     if(!p) return;
     setPanelVisible(p.classList.contains("hidden"));
   }
-  function bindPanelControls(){
-    const fabEl = document.getElementById("fabPanelEl");
-    const closeBtn = document.getElementById("panelCloseEl");
-    if(fabEl && !fabEl.__bound){
-      fabEl.__bound = true;
-      fabEl && fabEl.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
-      fabEl && fabEl.addEventListener("touchend", (ev)=>{ ev.preventDefault(); togglePanel(); }, {passive:false});
-    }
-    if(closeBtn && !closeBtn.__bound){
-      closeBtn.__bound = true;
-      closeBtn.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
-      closeBtn.addEventListener("touchend", (ev)=>{ ev.preventDefault(); setPanelVisible(false); }, {passive:false});
-    }
-    // default: hide on small screens
-    try{
-      if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelVisible(false);
-    }catch(e){}
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bindPanelControls, {once:true});
-  } else {
-    bindPanelControls();
-  }
-  window.addEventListener("pageshow", () => { try{ bindPanelControls(); }catch(e){} }, {passive:true});
+  const fabEl = document.getElementById('fabPanel');
+  const closeBtn = document.getElementById('panelCloseEl');
+  if(fabEl) fabEl.onclick = (e) => { e.preventDefault(); togglePanel(); };
+  if(closeBtn) closeBtn.onclick = (e) => { e.preventDefault(); setPanelVisible(false); };
+
+  // default: hide on small screens
+  try{ if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelVisible(false); }catch(e){}
 
   if (canvas) canvas.style.touchAction = "none";
   const hud = $("hud");
@@ -141,24 +113,18 @@
   const autoBitsEl = $("autoBits");
   const previewEl = $("preview");
   const autoSettleEl = $("autoSettle");
-  const hqBtn = $("hqBtn");
-  const saveBtn = $("saveBtn");
-  const deepBtn = $("deepBtn"); // may be missing in simplified UI
+  // const hqBtn = $("hqBtn"); // removed
+  // const saveBtn = $("saveBtn"); // removed
+  const deepBtn = $("deepBtn");
   const deepAlwaysEl = $("deepAlways");
   const deepBadge = document.getElementById("deepBadge");
   const toastEl = document.getElementById("toast");
-  const followBtn = $("followBtn");
   
-  // --- Mobile Mode (lightweight defaults + safer interactions) ---
+  // Mobile Mode
   let mobileMode = false;
-  
-  // Mobile FAB + panel collapse (v9.6.10)
-  var uiPanel = document.getElementById("uiPanel");
-  
   const mobileModeBtn = $("mobileModeBtn");
   const zoomInBtn = $("zoomInBtn");
   const zoomOutBtn = $("zoomOutBtn");
-  // Recommended mobile defaults
   const MOBILE_BITS = 768;
   const MOBILE_ITER = 520;
   const MOBILE_STEP = 6;
@@ -172,25 +138,19 @@
 
   function setMobileMode(on) {
     if (!W || !H) { mobileMode = !!on; try{localStorage.setItem("mobileMode", mobileMode?"1":"0");}catch(e){} return; }
-
     mobileMode = !!on;
     try { localStorage.setItem("mobileMode", mobileMode ? "1" : "0"); } catch(e) {}
     if (mobileModeBtn) {
       mobileModeBtn.textContent = mobileMode ? "ON" : "OFF";
       mobileModeBtn.classList.toggle("on", mobileMode);
     }
-
-    // Apply lightweight settings (only if corresponding controls exist)
     try {
       if (bitsEl) { bitsEl.value = String(MOBILE_BITS); }
       if (iterEl) { iterEl.value = String(MOBILE_ITER); }
       if (stepEl) { stepEl.value = String(MOBILE_STEP); }
       if (resEl)  { resEl.value  = String(MOBILE_RES);  }
     } catch(e) {}
-
-    // Prefer stable preview on mobile
     try { autoSettle = mobileMode ? false : autoSettle; } catch(e) {}
-
     requestRender("mobileMode", { preview:true });
   }
 
@@ -199,37 +159,25 @@
 
   function goHome(){
     resize(false);
-    // Standard Mandelbrot home view
     centerXBF = bfFromNumber(-0.5);
     centerYBF = bfFromNumber(0.0);
     if (!initialScale) initialScale = 3.5 / (W || 1200);
     scaleBF   = bfFromNumber(initialScale);
-    // Keep float in sync (for UI heuristics)
-    centerX = -0.5;
-    centerY =  0.0;
-    scaleF  = initialScale;
-
-    // Stop any in-flight HQ/follow timers
+    centerX = -0.5; centerY = 0.0; scaleF = initialScale;
     try{ if (followTimer) { clearTimeout(followTimer); followTimer=null; } }catch(e){}
     requestRender("home", {preview:true});
   }
 
-  // Mobile Mode: restore / auto-detect (defer so core vars initialize)
   setTimeout(() => {
     try {
       const stored = localStorage.getItem("mobileMode");
       if (stored === "1") setMobileMode(true);
       else if (stored === null && detectMobile()) setMobileMode(true);
-    } catch(e) {
-      if (detectMobile()) setMobileMode(true);
-    }
+    } catch(e) { if (detectMobile()) setMobileMode(true); }
   }, 0);
-  mobileModeBtn?.addEventListener("click", (ev) => {
-    ev.preventDefault();
-    setMobileMode(!mobileMode);
-  });
+  mobileModeBtn?.addEventListener("click", (ev) => { ev.preventDefault(); setMobileMode(!mobileMode); });
   
-  // Track last pointer (for mobile zoom buttons)
+  // Track last pointer
   let lastPX = null, lastPY = null;
   function setLastPointerFromEvent(ev){
     try{
@@ -237,8 +185,7 @@
       const x = (ev.clientX ?? (ev.touches && ev.touches[0]?.clientX));
       const y = (ev.clientY ?? (ev.touches && ev.touches[0]?.clientY));
       if (x == null || y == null) return;
-      lastPX = x - rect.left;
-      lastPY = y - rect.top;
+      lastPX = x - rect.left; lastPY = y - rect.top;
     }catch(e){}
   }
   canvas.addEventListener("pointerdown", setLastPointerFromEvent, {passive:true});
@@ -246,45 +193,17 @@
   canvas.addEventListener("touchstart", setLastPointerFromEvent, {passive:true});
   canvas.addEventListener("touchmove", setLastPointerFromEvent, {passive:true});
 
-  // Zoom buttons for touch devices
   function zoomByButton(dir){
-    // dir: +1 zoom in, -1 zoom out
     const factor = (dir > 0) ? 0.80 : 1.25;
-    // Zoom around screen center (simple & predictable on mobile)
-    const px = W*0.5, py = H*0.5;
-    
-    // Apply scale
     scaleF *= factor;
     scaleBF = bfMul(scaleBF, bfFromNumber(factor));
-    // Center stays the same (center zoom)
     requestRender("btnZoom", { preview:true });
   }
 
   zoomInBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(+1); });
-
-  // FAB bindings (always available on mobile)
-  function panelToggle(){
-    if(!uiPanel) return;
-    setPanelVisible(!uiPanel.classList.contains("hidden"));
-  }
-
-  fabEl && fabEl.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
-  const closeBtn = document.getElementById("panelCloseEl"); // re-fetch safe
-  closeBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
-
-  // default: hide panel on mobile
-  try{
-    if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelVisible(false);
-  }catch(e){}
-
-  // Default collapsed on mobile
-  try {
-    if (typeof detectMobile === "function" && detectMobile()) setPanelVisible(false);
-  } catch(e) {}
-  if (Math.min(innerWidth, innerHeight) <= 520) setPanelVisible(false);
-
-  // Panel compact toggle (especially for mobile)
   zoomOutBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(-1); });
+  
+  // Mobile FAB bindings
   const fabZoomIn = document.getElementById("fabZoomIn");
   const fabZoomOut = document.getElementById("fabZoomOut");
   fabZoomIn?.addEventListener("click", (ev)=>{ ev.preventDefault(); zoomByButton(+1); });
@@ -293,104 +212,34 @@
   fabZoomOut?.addEventListener("touchend", (ev)=>{ ev.preventDefault(); zoomByButton(-1); }, {passive:false});
 
   resetBtn?.addEventListener("click", (ev) => { ev.preventDefault(); goHome(); });
-  const nukeBtn = $("nukeBtn");
 
   function showErr(t){
-    try{
-      if (!errBox) return;
-      errBox.style.display = "block";
-      errBox.textContent = String(t ?? "");
-    }catch(e){}
+    try{ if (!errBox) return; errBox.style.display = "block"; errBox.textContent = String(t ?? ""); }catch(e){}
   }
-
-  // If any runtime error escapes, show it.
-  window.addEventListener("error", (e) => {
-    const msg = (e && e.message) ? e.message : "";
-    const file = (e && e.filename) ? e.filename : "";
-    const line = (e && e.lineno) ? e.lineno : 0;
-    const col  = (e && e.colno) ? e.colno : 0;
-    showErr("[window.error]\n" + msg + "\n" + file + ":" + line + ":" + col);
-  }, {passive:true});
-
-  window.addEventListener("unhandledrejection", (e) => {
-    const r = e && e.reason;
-    const msg = (r && (r.stack || r.message)) ? (r.stack || r.message) : String(r);
-    showErr("[unhandledrejection]\n" + msg);
-  }, {passive:true});
+  window.addEventListener("error", (e) => { showErr("[window.error]\n" + (e.message||"")); }, {passive:true});
+  window.addEventListener("unhandledrejection", (e) => { showErr("[unhandledrejection]\n" + (e.reason||"")); }, {passive:true});
 
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
-  var dpr = 1; // safe init (no TDZ on mobile)
+  var dpr = 1; 
   dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
-  var cssW = 0, cssH = 0; // var to avoid TDZ on some mobile browsers
-  var W = 0, H = 0; // var to avoid TDZ
+  var cssW = 0, cssH = 0; 
+  var W = 0, H = 0; 
 
-  // view parameters (center in float64 for UI; also fixed-point for UltraDeep)
-  let centerX = -0.5;
-  let centerY = 0.0;
-  let initialScale = 0;      // float64 (complex per pixel)
-  let scaleF = 0;            // float64
+  let centerX = -0.5; let centerY = 0.0;
+  let initialScale = 0; let scaleF = 0;
 
-  // DeepNav BigFloat camera
-  const DEEPNAV_TRIGGER_LOG2 = 80; // smaller => earlier (recommended 60-120)
-  let deepNavEnabled = false; // disabled (simplified UI)
+  const DEEPNAV_TRIGGER_LOG2 = 80;
+  let deepNavEnabled = false; 
   let deepNavActive = false;
   
-  var deepAlways = false; // disabled (simplified UI)
+  var deepAlways = false; 
   var lastDeepActive = false;
   let followEnabled = true;
   var followTimer = null;
-  let panRaf = null; // throttle for deep pan preview
+  let panRaf = null; 
   let centerXBF = bfFromNumber(centerX);
   let centerYBF = bfFromNumber(centerY);
-  let scaleBF   = bfFromNumber(scaleF); // per-pixel scale in BigFloat
-
-  // UltraDeep fixed-point helpers (BigInt)
-  function f2fixed(n, bits){
-    if (!Number.isFinite(n)) throw new RangeError("f2fixed: non-finite");
-    bits = bits|0;
-    if (n === 0) return 0n;
-
-    const buf = new ArrayBuffer(8);
-    const dv = new DataView(buf);
-    dv.setFloat64(0, n, false);
-
-    const hi = dv.getUint32(0, false);
-    const lo = dv.getUint32(4, false);
-
-    const sign = (hi >>> 31) ? -1n : 1n;
-    const exp = (hi >>> 20) & 0x7ff;
-    const fracHi = hi & 0xFFFFF;
-
-    let mant = (BigInt(fracHi) << 32n) | BigInt(lo); // 52-bit fraction
-    let e2;
-    if (exp === 0) {
-      e2 = -1074;
-    } else {
-      mant = (1n << 52n) | mant;
-      e2 = (exp - 1023 - 52);
-    }
-
-    let shift = e2 + bits; // fixed = mant * 2^(e2+bits)
-    let out;
-    if (shift >= 0) {
-      out = mant << BigInt(shift);
-    } else {
-      const rshift = BigInt(-shift);
-      const half = 1n << (rshift - 1n);
-      out = (mant + half) >> rshift;
-    }
-    return sign * out;
-  }
-
-  function fixed2f(v, bits){
-    bits = bits|0;
-    if (bits > 1023) {
-      const sh = bits - 1023;
-      v = v >> BigInt(sh);
-      bits = 1023;
-    }
-    return Number(v) / Math.pow(2, bits);
-  }
+  let scaleBF   = bfFromNumber(scaleF); 
 
   // Workers
   const workerCount = Math.max(1, Math.min((navigator.hardwareConcurrency || 4) - 1, 8));
@@ -431,7 +280,6 @@
   }
   window.addEventListener("resize", () => { resize(true); requestRender("resize"); }, { passive:true });
 
-  // Iteration heuristic
   function itersForScale(scale){
     let lnMag = 0;
     if (deepNavActive || !Number.isFinite(scale) || scale === 0){
@@ -449,7 +297,6 @@
     return Math.max(150, Math.min(cap, base));
   }
 
-
   // Interaction
   let isDragging = false;
   let activePid = null;
@@ -457,16 +304,13 @@
   let lastX = 0, lastY = 0;
   let isMouseDragging = false;
   let mouseButtonMask = 0;
-  var renderToken = 0; // var to avoid TDZ
-  // HQ sequence control
+  var renderToken = 0; 
+
   let hqActive = false;
   let hqTimers = [];
   let hqPrevStep = null;
   let hqPrevRes = null;
-  function hqClearTimers(){
-    for (const t of hqTimers) clearTimeout(t);
-    hqTimers = [];
-  }
+  function hqClearTimers(){ for (const t of hqTimers) clearTimeout(t); hqTimers = []; }
   function hqAbort(restore=true){
     if (!hqActive) return;
     hqClearTimers();
@@ -477,10 +321,7 @@
     }
     hqActive = false;
   }
-  function hqOnUserInput(){
-    if (!hqActive) return;
-    hqAbort(true);
-  }
+  function hqOnUserInput(){ if (!hqActive) return; hqAbort(true); }
 
   let debounce = 0;
   let settleTimer = 0;
@@ -494,7 +335,7 @@
 
   function schedule(reason){
     clearTimeout(debounce);
-    debounce = setTimeout(() => { if (!deepNavActive) requestRender(reason, { preview:true }); else updateHUD("DeepNav active (press P or HQ)", 0, 0, 0, 0, 0); }, 35);
+    debounce = setTimeout(() => { if (!deepNavActive) requestRender(reason, { preview:true }); else updateHUD("DeepNav active", 0, 0, 0, 0, 0); }, 35);
     if (autoSettleEl?.checked) {
       clearTimeout(settleTimer);
       settleTimer = setTimeout(() => { if (!deepNavActive) requestRender("settle", { preview:false }); }, 220);
@@ -503,20 +344,15 @@
 
   canvas.addEventListener("pointerdown", (ev) => {
     if (ev.pointerType === "mouse") return;
-    ev.preventDefault();
-    hqOnUserInput();
+    ev.preventDefault(); hqOnUserInput();
     if (ev.pointerType === "mouse") {
       const ok = (ev.button === 0 || ev.button === 1 || (ev.buttons & 1) || (ev.buttons & 4));
       if (!ok) return;
     }
     canvas.setPointerCapture(ev.pointerId);
-    isDragging = true;
-    activePid = ev.pointerId;
-    moved = false;
-    downT = performance.now();
+    isDragging = true; activePid = ev.pointerId; moved = false;
     const p = canvasXY(ev);
-    downX = p.x; downY = p.y;
-    lastX = p.x; lastY = p.y;
+    downX = p.x; downY = p.y; lastX = p.x; lastY = p.y;
   }, { passive:false });
 
   canvas.addEventListener("pointermove", (ev) => {
@@ -525,53 +361,36 @@
     if (ev.pointerType === "mouse" && ev.buttons === 0) { isDragging = false; activePid = null; return; }
     ev.preventDefault();
     const p = canvasXY(ev);
-    const dx = p.x - lastX;
-    const dy = p.y - lastY;
+    const dx = p.x - lastX; const dy = p.y - lastY;
     if (!moved) {
       const ddx = (p.x - downX), ddy = (p.y - downY);
-      if (ddx*ddx + ddy*ddy > 64) moved = true; // 8px
+      if (ddx*ddx + ddy*ddy > 64) moved = true;
     }
     lastX = p.x; lastY = p.y;
-    centerX -= dx * scaleF;
-    centerY -= dy * scaleF;
+    centerX -= dx * scaleF; centerY -= dy * scaleF;
     centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(-dx), scaleBF));
     centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(-dy), scaleBF));
     if (deepNavActive){
-      centerX = bfToNumberApprox(centerXBF);
-      centerY = bfToNumberApprox(centerYBF);
-      updateHUD("DeepNav active", 0, 0, 0, 0, 0);
-      requestDeepPanPreview("pan");
-      return;
+      centerX = bfToNumberApprox(centerXBF); centerY = bfToNumberApprox(centerYBF);
+      updateHUD("DeepNav active", 0, 0, 0, 0, 0); requestDeepPanPreview("pan"); return;
     }
     schedule("pan");
   }, { passive:false });
 
-  canvas.addEventListener("pointerup", (ev) => {
-    ev.preventDefault();
-    isDragging = false;
-    activePid = null;
-  }, { passive:false });
+  canvas.addEventListener("pointerup", (ev) => { ev.preventDefault(); isDragging = false; activePid = null; }, { passive:false });
   canvas.addEventListener("pointercancel", (ev) => { isDragging=false; activePid=null; }, { passive:true });
-
   canvas.addEventListener("lostpointercapture", (ev) => { isDragging=false; activePid=null; }, { passive:true });
   canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
-  canvas.addEventListener("auxclick", (ev) => ev.preventDefault());
 
-  function mouseDownOk(ev){
-    return (ev.button === 0 || ev.button === 1);
-  }
+  function mouseDownOk(ev){ return (ev.button === 0 || ev.button === 1); }
 
   canvas.addEventListener("mousedown", (ev) => {
     if (!mouseDownOk(ev)) return;
-    ev.preventDefault();
-    hqOnUserInput();
+    ev.preventDefault(); hqOnUserInput();
     mouseButtonMask = (ev.button === 0) ? 1 : 4;
-    isMouseDragging = true;
-    moved = false;
-    downT = performance.now();
+    isMouseDragging = true; moved = false;
     const p = canvasXY(ev);
-    downX = p.x; downY = p.y;
-    lastX = p.x; lastY = p.y;
+    downX = p.x; downY = p.y; lastX = p.x; lastY = p.y;
     window.addEventListener("mousemove", onMouseMove, { passive:false });
     window.addEventListener("mouseup", onMouseUp, { passive:false, once:true });
   }, { passive:false });
@@ -581,38 +400,27 @@
     if ((ev.buttons & mouseButtonMask) === 0) { onMouseUp(ev); return; }
     ev.preventDefault();
     const p = canvasXY(ev);
-    const dx = p.x - lastX;
-    const dy = p.y - lastY;
-    if (!moved) {
-      const ddx = (p.x - downX), ddy = (p.y - downY);
-      if (ddx*ddx + ddy*ddy > 64) moved = true;
-    }
+    const dx = p.x - lastX; const dy = p.y - lastY;
+    if (!moved) { const ddx = (p.x - downX), ddy = (p.y - downY); if (ddx*ddx + ddy*ddy > 64) moved = true; }
     lastX = p.x; lastY = p.y;
-    centerX -= dx * scaleF;
-    centerY -= dy * scaleF;
+    centerX -= dx * scaleF; centerY -= dy * scaleF;
     centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(-dx), scaleBF));
     centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(-dy), scaleBF));
     if (deepNavActive){
-      centerX = bfToNumberApprox(centerXBF);
-      centerY = bfToNumberApprox(centerYBF);
-      updateHUD("DeepNav active", 0, 0, 0, 0, 0);
-      requestDeepPanPreview("pan");
-      return;
+      centerX = bfToNumberApprox(centerXBF); centerY = bfToNumberApprox(centerYBF);
+      updateHUD("DeepNav active", 0, 0, 0, 0, 0); requestDeepPanPreview("pan"); return;
     }
     schedule("pan");
   }
-
   function onMouseUp(ev){
     if (!isMouseDragging) return;
     ev?.preventDefault?.();
-    isMouseDragging = false;
-    mouseButtonMask = 0;
+    isMouseDragging = false; mouseButtonMask = 0;
     window.removeEventListener("mousemove", onMouseMove, { passive:false });
   }
 
   canvas.addEventListener("wheel", (ev) => {
-    ev.preventDefault();
-    hqOnUserInput();
+    ev.preventDefault(); hqOnUserInput();
     const {x:px, y:py} = canvasXY(ev);
     const base = 0.0068;
     const zspd0 = Math.max(0.01, Math.min(3.0, parseFloat(zoomSpeedEl?.value || "0.35")));
@@ -621,9 +429,7 @@
     dyN = Math.sign(dyN) * Math.min(240, Math.abs(dyN));
     const speed = base * zspd;
     const factor = Math.exp(-dyN * speed);
-
-    const dxPix = (px - W*0.5);
-    const dyPix = (py - H*0.5);
+    const dxPix = (px - W*0.5); const dyPix = (py - H*0.5);
 
     const scaleBeforeBF = scaleBF;
     const fBF = bfFromNumber(factor);
@@ -643,38 +449,28 @@
     const mBits = absM === 0n ? 0 : absM.toString(2).length;
     const log2Scale = (mBits ? (mBits - 1) : -999999) + (scaleBF.e|0);
     deepNavActive = deepNavEnabled && (scaleF === 0 || !Number.isFinite(scaleF) || log2Scale < -1080);
-
     if (deepNavActive){
-      centerX = bfToNumberApprox(centerXBF);
-      centerY = bfToNumberApprox(centerYBF);
+      centerX = bfToNumberApprox(centerXBF); centerY = bfToNumberApprox(centerYBF);
       scaleF  = bfToNumberApprox(scaleBF);
-      updateHUD("DeepNav active", 0, 0, 0, 0, 0);
-      scheduleFollowPreview("wheel");
-      return;
+      updateHUD("DeepNav active", 0, 0, 0, 0, 0); scheduleFollowPreview("wheel"); return;
     }
     schedule("zoom");
   }, { passive:false });
 
   canvas.addEventListener("dblclick", (ev) => {
-    ev.preventDefault();
-    hqOnUserInput();
+    ev.preventDefault(); hqOnUserInput();
     const p = canvasXY(ev);
-    const dxPix = (p.x - W*0.5);
-    const dyPix = (p.y - H*0.5);
-    centerX += dxPix * scaleF;
-    centerY += dyPix * scaleF;
+    const dxPix = (p.x - W*0.5); const dyPix = (p.y - H*0.5);
+    centerX += dxPix * scaleF; centerY += dyPix * scaleF;
     centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(dxPix), scaleBF));
     centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(dyPix), scaleBF));
     const factor = 0.5;
-    scaleF *= factor;
-    scaleBF = bfMul(scaleBF, bfFromNumber(factor));
-    if (deepNavActive) scheduleFollowPreview("dbl");
-    else schedule("dbl");
+    scaleF *= factor; scaleBF = bfMul(scaleBF, bfFromNumber(factor));
+    if (deepNavActive) scheduleFollowPreview("dbl"); else schedule("dbl");
   }, { passive:false });
 
   window.addEventListener("keydown", (ev) => {
     if (ev.key === "h" || ev.key === "H") { ev.preventDefault(); goHome(); return; }
-
     if (ev.key && ev.key.toLowerCase() === "a") {
       deepAlways = !deepAlways;
       try { localStorage.setItem("deepAlways", deepAlways ? "1" : "0"); } catch(e) {}
@@ -692,8 +488,7 @@
   function doReset(){
     centerX = -0.5; centerY = 0.0;
     scaleF = initialScale || (3.5 / Math.max(1, W));
-    centerXBF = bfFromNumber(centerX);
-    centerYBF = bfFromNumber(centerY);
+    centerXBF = bfFromNumber(centerX); centerYBF = bfFromNumber(centerY);
     scaleBF = bfFromNumber(scaleF);
     deepNavActive = false;
     if (deepAlways && deepNavEnabled) deepNavActive = true;
@@ -709,24 +504,16 @@
       const res = (resEl?.value || "").trim();
       const stamp = new Date().toISOString().replace(/[:.]/g,"-");
       const name = `mandelbrot_${mode}_bits${bits}_it${iters}_step${step}_res${res}_${stamp}.png`;
-
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
       if (!blob) throw new Error("toBlob failed");
-
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 4000);
-    }catch(e){
-      showErr("[savePNG]\n" + ((e && (e.stack || e.message)) || e));
-    }
+    }catch(e){ showErr("[savePNG]\n" + ((e && (e.stack || e.message)) || e)); }
   }
 
-  // restore DeepNav Always state
   try { deepAlways = (localStorage.getItem("deepAlways") ?? "1") === "1"; } catch(e) {}
   if (deepAlwaysEl) deepAlwaysEl.checked = deepAlways;
   deepAlwaysEl?.addEventListener("change", () => {
@@ -742,34 +529,8 @@
     updateHUD("toggle DeepNav", 0, 0, 0, 0, 0);
   });
 
-  hqBtn?.addEventListener("click", () => {
-    hqAbort(false);
-    hqActive = true;
-    hqClearTimers();
-    hqPrevRes = resEl ? parseFloat(resEl.value || "0.70") : 0.70;
-    hqPrevStep = stepEl ? parseInt(stepEl.value || "2", 10) : 2;
-
-    if (resEl) resEl.value = "1.00";
-    if (stepEl) stepEl.value = "1";
-    resize(true);
-
-    requestRender("HQ(one-shot)", {
-      preview:false,
-      forceRes: 1.0,
-      forceStep: 1,
-      onDone: () => {
-        if (resEl) resEl.value = String(hqPrevRes ?? 0.70);
-        if (stepEl) stepEl.value = String(hqPrevStep ?? 2);
-        hqActive = false;
-      }
-    });
-  });
-
   // Rendering
-  function clear(){
-    ctx.fillStyle = "#0b0b0f";
-    ctx.fillRect(0,0,W,H);
-  }
+  function clear(){ ctx.fillStyle = "#0b0b0f"; ctx.fillRect(0,0,W,H); }
 
   function updateHUD(reason, ms, iters, bitsUsed, step, internal){
     const absM = (scaleBF.m < 0n) ? -scaleBF.m : scaleBF.m;
@@ -786,27 +547,18 @@ last   = ${ms|0} ms   ${reason||""}`;
 
   function showToast(msg){
     if (!toastEl) return;
-    toastEl.textContent = msg;
-    toastEl.classList.add("show");
+    toastEl.textContent = msg; toastEl.classList.add("show");
     clearTimeout(showToast._t || 0);
     showToast._t = setTimeout(() => toastEl.classList.remove("show"), 900);
   }
 
   function updateDeepBadge(){
     if (!deepBadge) return;
-    const enabled = !!deepNavEnabled;
-    const active = !!deepNavActive;
+    const enabled = !!deepNavEnabled; const active = !!deepNavActive;
     deepBadge.classList.remove("on","off","standby");
-    if (!enabled){
-      deepBadge.classList.add("off");
-      deepBadge.textContent = "DEEPNAV OFF";
-    } else if (active){
-      deepBadge.classList.add("on");
-      deepBadge.textContent = "DEEPNAV ACTIVE";
-    } else {
-      deepBadge.classList.add("standby");
-      deepBadge.textContent = "DEEPNAV STANDBY";
-    }
+    if (!enabled){ deepBadge.classList.add("off"); deepBadge.textContent = "DEEPNAV OFF"; } 
+    else if (active){ deepBadge.classList.add("on"); deepBadge.textContent = "DEEPNAV ACTIVE"; } 
+    else { deepBadge.classList.add("standby"); deepBadge.textContent = "DEEPNAV STANDBY"; }
     if (active && !lastDeepActive) showToast("DEEPNAV ACTIVE");
     lastDeepActive = active;
   }
@@ -821,21 +573,11 @@ last   = ${ms|0} ms   ${reason||""}`;
     if (opts && Number.isFinite(opts.forceStep)) step = Math.max(1, opts.forceStep|0);
     let iters = itersForScale(scaleF);
     if (opts && Number.isFinite(opts.forceIterCap)) iters = Math.min(iters, opts.forceIterCap|0);
-
-    const img = ctx.createImageData(W, H);
-    const data = img.data;
-    const xmin = centerX - (W*0.5)*scaleF;
-    const ymin = centerY - (H*0.5)*scaleF;
-
+    const img = ctx.createImageData(W, H); const data = img.data;
+    const xmin = centerX - (W*0.5)*scaleF; const ymin = centerY - (H*0.5)*scaleF;
     function mandel(cx, cy){
-      let x=0, y=0, x2=0, y2=0;
-      let i=0;
-      while (i<iters && x2+y2<=4){
-        y = 2*x*y + cy;
-        x = x2 - y2 + cx;
-        x2 = x*x; y2=y*y;
-        i++;
-      }
+      let x=0, y=0, x2=0, y2=0; let i=0;
+      while (i<iters && x2+y2<=4){ y = 2*x*y + cy; x = x2 - y2 + cx; x2 = x*x; y2=y*y; i++; }
       return i;
     }
     function color(i){
@@ -846,21 +588,14 @@ last   = ${ms|0} ms   ${reason||""}`;
       const c = 0.5+0.5*Math.sin(6.28318*(t*3.0 + 0.66));
       return [(a*255)|0,(b*255)|0,(c*255)|0,255];
     }
-
     for (let y=0; y<H; y+=step){
       const cy = ymin + y*scaleF;
       for (let x=0; x<W; x+=step){
-        const cx = xmin + x*scaleF;
-        const it = mandel(cx, cy);
-        const [r,g,b,a] = color(it);
-        const yMax = Math.min(H, y+step);
-        const xMax = Math.min(W, x+step);
+        const cx = xmin + x*scaleF; const it = mandel(cx, cy); const [r,g,b,a] = color(it);
+        const yMax = Math.min(H, y+step); const xMax = Math.min(W, x+step);
         for (let yy=y; yy<yMax; yy++){
           let idx = (yy*W + x)*4;
-          for (let xx=x; xx<xMax; xx++){
-            data[idx]=r; data[idx+1]=g; data[idx+2]=b; data[idx+3]=a;
-            idx+=4;
-          }
+          for (let xx=x; xx<xMax; xx++){ data[idx]=r; data[idx+1]=g; data[idx+2]=b; data[idx+3]=a; idx+=4; }
         }
       }
     }
@@ -877,42 +612,25 @@ last   = ${ms|0} ms   ${reason||""}`;
     if (opts && Number.isFinite(opts.forceIterCap)) iters = Math.min(iters, opts.forceIterCap|0);
     let internal = parseFloat(resEl?.value || "0.70");
     if (opts && Number.isFinite(opts.forceRes)) internal = Math.max(0.10, Math.min(1.0, opts.forceRes));
-
     const bitsUsed = (preview ? Math.min(baseBits, 160) : baseBits) | 0;
     const sh = baseBits - bitsUsed;
-
     const baseStep = parseInt(stepEl?.value || "2", 10);
     let step = ((opts && opts.hq) ? 1 : (preview ? Math.min(16, Math.max(6, baseStep*3)) : baseStep));
     if (opts && Number.isFinite(opts.forceStep)) step = Math.max(1, opts.forceStep|0);
-
     const centerXFix = bfToFixed(centerXBF, baseBits);
     const centerYFix = bfToFixed(centerYBF, baseBits);
     const scaleFix = bfToFixed(scaleBF, baseBits);
-
-    const halfW = BigInt(Math.floor(W/2));
-    const halfH = BigInt(Math.floor(H/2));
-    let xmin = centerXFix - (halfW * scaleFix);
-    let ymin = centerYFix - (halfH * scaleFix);
-
+    const halfW = BigInt(Math.floor(W/2)); const halfH = BigInt(Math.floor(H/2));
+    let xmin = centerXFix - (halfW * scaleFix); let ymin = centerYFix - (halfH * scaleFix);
     let scale = scaleFix;
-    if (sh > 0) {
-      xmin >>= BigInt(sh);
-      ymin >>= BigInt(sh);
-      scale >>= BigInt(sh);
-    }
+    if (sh > 0) { xmin >>= BigInt(sh); ymin >>= BigInt(sh); scale >>= BigInt(sh); }
 
-    if (!workerOK || workers.length === 0) {
-      renderStandard(token, opts);
-      return;
-    }
+    if (!workerOK || workers.length === 0) { renderStandard(token, opts); return; }
 
     clear();
     const strip = Math.max(24, Math.floor(H / (workerCount * 5)));
     const jobs = [];
-    for (let y0=0; y0<H; y0+=strip){
-      jobs.push({y0, rows: Math.min(strip, H-y0)});
-    }
-
+    for (let y0=0; y0<H; y0+=strip){ jobs.push({y0, rows: Math.min(strip, H-y0)}); }
     let done = 0;
     const onMsg = (ev) => {
       const m = ev.data;
@@ -921,36 +639,19 @@ last   = ${ms|0} ms   ${reason||""}`;
       const rowsFromData = Math.floor(data.length / (W * 4));
       if (rowsFromData <= 0 || rowsFromData * W * 4 !== data.length) return;
       if (m.startY + rowsFromData > H) return;
-
       const img = new ImageData(data, W, rowsFromData);
-      ctx.putImageData(img, 0, m.startY);
-      done++;
+      ctx.putImageData(img, 0, m.startY); done++;
       if (done >= jobs.length) {
         for (const w of workers) w.removeEventListener("message", onMsg);
         if (token !== renderToken) return;
         updateHUD("ultradeep "+(preview?"preview":"full"), performance.now()-start, iters, bitsUsed, step, internal.toFixed(2));
         try{ if (opts && typeof opts.onDone === "function") opts.onDone(); }catch(e){}
-
       }
     };
     for (const w of workers) w.addEventListener("message", onMsg);
-
     for (let i=0;i<jobs.length;i++){
-      const w = workers[i % workerCount];
-      const j = jobs[i];
-      w.postMessage({
-        type:"job",
-        token,
-        W,
-        startY: j.y0,
-        rows: j.rows,
-        step,
-        maxIter: iters,
-        bits: bitsUsed,
-        xmin,
-        ymin,
-        scale
-      });
+      const w = workers[i % workerCount]; const j = jobs[i];
+      w.postMessage({ type:"job", token, W, startY: j.y0, rows: j.rows, step, maxIter: iters, bits: bitsUsed, xmin, ymin, scale });
     }
   }
 
@@ -959,36 +660,22 @@ last   = ${ms|0} ms   ${reason||""}`;
     if (followTimer) clearTimeout(followTimer);
     followTimer = setTimeout(() => {
       followTimer = null;
-      requestRender("follow:" + (reason||""), {
-        preview: false,
-        forceRes: 0.40,
-        forceStep: 24,
-        forceIterCap: 420
-      });
+      requestRender("follow:" + (reason||""), { preview: false, forceRes: 0.40, forceStep: 24, forceIterCap: 420 });
     }, 60);
   }
-
   function requestDeepPanPreview(reason){
     if (!deepNavActive) return;
     if (panRaf) return;
     panRaf = requestAnimationFrame(() => {
       panRaf = null;
-      requestRender("pan:" + (reason||""), {
-        preview: false,
-        forceRes: 0.55,
-        forceStep: 10,
-        forceIterCap: 520
-      });
+      requestRender("pan:" + (reason||""), { preview: false, forceRes: 0.55, forceStep: 10, forceIterCap: 520 });
     });
   }
-
   function requestRender(reason="", opts={}){
     resize(false);
     const token = ++renderToken;
     try{
-      if ((modeEl?.value || "ultradeep") === "standard") {
-        renderStandard(token, opts);
-      } else {
+      if ((modeEl?.value || "ultradeep") === "standard") { renderStandard(token, opts); } else {
         if (autoBitsEl?.checked) {
           const mag = Math.max(1, initialScale / scaleF);
           const need = Math.floor(120 + Math.log2(mag) * 24);
@@ -997,9 +684,7 @@ last   = ${ms|0} ms   ${reason||""}`;
         }
         renderUltraDeep(token, opts);
       }
-    }catch(e){
-      showErr("[render exception]\n" + (e.stack || e.message || e));
-    }
+    }catch(e){ showErr("[render exception]\n" + (e.stack || e.message || e)); }
   }
 
   modeEl?.addEventListener("change", () => requestRender("mode", {preview:false}));
@@ -1017,28 +702,18 @@ last   = ${ms|0} ms   ${reason||""}`;
   // --- HQ撮影機能 (Camボタン用) ---
   function captureHQ(){
     showToast("高精細レンダリング中...");
-    
-    // 今の設定を記憶しておく
     const oldRes = resEl ? resEl.value : "0.70";
     const oldStep = stepEl ? stepEl.value : "2";
-
-    // 一時的に最高画質設定にする
     if(resEl) resEl.value = "1.00";
     if(stepEl) stepEl.value = "1";
-    resize(true); // キャンバスサイズをピクセル等倍に合わせる
+    resize(true); 
 
-    // HQレンダリングをリクエスト
     requestRender("HQ-Capture", {
-      preview: false,
-      forceRes: 1.0,
-      forceStep: 1,
-      // 描画が終わったら呼ばれる
+      preview: false, forceRes: 1.0, forceStep: 1,
       onDone: () => {
-        // 少し待ってから保存（描画直後のチラつき防止）
         setTimeout(() => {
           savePNG().then(() => {
             showToast("保存しました");
-            // 設定を元に戻す
             if(resEl) resEl.value = oldRes;
             if(stepEl) stepEl.value = oldStep;
             resize(true);
@@ -1049,15 +724,19 @@ last   = ${ms|0} ms   ${reason||""}`;
     });
   }
 
-  // カメラボタン（追加したfabCam）に割り当て
   const fabCam = document.getElementById("fabCam");
   if(fabCam){
-    const handleCam = (ev) => {
-      ev.preventDefault();
-      captureHQ();
-    };
+    const handleCam = (ev) => { ev.preventDefault(); captureHQ(); };
     fabCam.addEventListener("click", handleCam);
     fabCam.addEventListener("touchend", handleCam, {passive:false});
+  }
+
+  // PANEL内のボタンにもバインド
+  const panelCamBtn = document.getElementById("panelCamBtn");
+  if(panelCamBtn){
+    const handleCam = (ev) => { ev.preventDefault(); captureHQ(); };
+    panelCamBtn.addEventListener("click", handleCam);
+    panelCamBtn.addEventListener("touchend", handleCam, {passive:false});
   }
 
 })();
