@@ -1,5 +1,37 @@
-// Mandelbrot Explorer UltraDeep v9 (Universal Cam)
+// Mandelbrot Explorer UltraDeep v9 (Universal Cam + Wake Lock)
 (() => {
+  // ▼▼▼ Screen Wake Lock API (画面消灯防止) ▼▼▼
+  let wakeLock = null;
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      if (wakeLock !== null && !wakeLock.released) return;
+      wakeLock = await navigator.wakeLock.request('screen');
+      // console.log('Wake Lock active');
+      wakeLock.addEventListener('release', () => {
+        // console.log('Wake Lock released');
+        wakeLock = null;
+      });
+    } catch (err) {
+      console.warn('Wake Lock error:', err.name, err.message);
+    }
+  }
+  // アプリが再びアクティブになったらロック再取得
+  document.addEventListener('visibilitychange', async () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+      await requestWakeLock();
+    }
+  });
+  // 最初の操作でロックを開始
+  const initWakeLock = () => {
+    requestWakeLock();
+    window.removeEventListener('click', initWakeLock);
+    window.removeEventListener('touchstart', initWakeLock);
+  };
+  window.addEventListener('click', initWakeLock);
+  window.addEventListener('touchstart', initWakeLock);
+  // ▲▲▲ End Wake Lock ▲▲▲
+
   // ---- BigFloat (DeepNav) ----
   function bfNorm(b){
     let m = b.m, e = b.e|0;
@@ -701,6 +733,7 @@ last   = ${ms|0} ms   ${reason||""}`;
 
   // --- HQ撮影機能 (Camボタン用) ---
   function captureHQ(){
+    requestWakeLock(); // ★追加: 撮影開始時にロック要求
     showToast("高精細レンダリング中...");
     const oldRes = resEl ? resEl.value : "0.70";
     const oldStep = stepEl ? stepEl.value : "2";

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0f" />
-  <title>Mandelbrot Explorer v9.6.12</title>
+  <title>Mandelbrot Explorer v9.6.13</title>
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="favicon.ico" />
@@ -79,10 +79,11 @@
       border-radius:10px; padding:2px 6px; margin-right: 6px; font-weight: bold;
     }
 
-    /* DEEPNAV BADGE */
+    /* DEEPNAV BADGE - 位置を画面下部へ移動 */
     #deepBadge{
       position:fixed; 
-      top: 12px;
+      /* top: 12px;  <-- 削除 */
+      bottom: 100px; /* <-- 変更: 下から100pxの位置へ */
       left: 50%; 
       transform: translateX(-50%);
       z-index:9998;
@@ -182,7 +183,7 @@
 <div id="uiPanel" class="panel">
   <div class="kidsTop">
     <div class="kidsTitle">Mandelbrot Explorer</div>
-    <div class="kidsSub">UltraDeep v9.6.12</div>
+    <div class="kidsSub">UltraDeep v9.6.13</div>
   </div>
   
   <div class="row">
