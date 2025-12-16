@@ -75,3 +75,13 @@ GitHub Pages 手順
 ## v9.2.4
 - ホイールの“連鎖反応”対策：wheelを積分してrAFで減衰適用（慣性の尾を短く）
 - 微小deltaを無視＋総量クランプで暴走防止
+
+
+## v9.2.5
+- トラックパッド慣性の尾を無視（小さいwheel deltaを一定時間後に捨てる）
+- 1フレームあたりの適用量を制限して“ずるずる”を抑制
+
+
+## v9.2.6
+- ドラッグの“尾引き”対策：active pointer idでガード + mouseボタン解除時(ev.buttons==0)に即停止
+- pointercancel / lostpointercaptureでも確実にドラッグ状態を解除

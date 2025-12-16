@@ -169,6 +169,7 @@
   let wheelAcc = 0;
   let wheelRaf = 0;
   let wheelLastT = 0;
+  let wheelLastStrongT = 0;
   let wheelCX = 0;
   let wheelCY = 0;
   let centerXBF = bfFromNumber(centerX);
@@ -292,6 +293,7 @@ function fixed2f(v, bits){
 
   // Interaction
   let isDragging = false;
+  let activePid = null;
   let downX = 0, downY = 0, moved = false, downT = 0;
   let lastX = 0, lastY = 0;
   let renderToken = 0;
@@ -325,6 +327,7 @@ function fixed2f(v, bits){
     if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     canvas.setPointerCapture(ev.pointerId);
     isDragging = true;
+    activePid = ev.pointerId;
     moved = false;
     downT = performance.now();
     const p = canvasXY(ev);
@@ -334,6 +337,9 @@ function fixed2f(v, bits){
 
   canvas.addEventListener("pointermove", (ev) => {
     if (!isDragging) return;
+    if (activePid !== null && ev.pointerId !== activePid) return;
+    // Some environments keep firing pointermove after button release; stop immediately.
+    if (ev.pointerType === "mouse" && ev.buttons === 0) { isDragging = false; activePid = null; return; }
     ev.preventDefault();
     const p = canvasXY(ev);
     const dx = p.x - lastX;
@@ -361,6 +367,9 @@ function fixed2f(v, bits){
   canvas.addEventListener("pointerup", (ev) => {
     ev.preventDefault();
     isDragging = false;
+    activePid = null;
+    // Stop any pending follow preview triggered by drag tail
+    if (followTimer) { clearTimeout(followTimer); followTimer = null; }
     const dt = performance.now() - downT;
     // Click-to-center: short tap only (avoid accidental recenter after slow drag)
     if (!moved && dt < 250) {
@@ -377,19 +386,76 @@ function fixed2f(v, bits){
   }, { passive:false });
   canvas.addEventListener("pointercancel", () => { isDragging=false; }, { passive:true });
 
+  canvas.addEventListener("lostpointercapture", (ev) => { isDragging=false; activePid=null; if (followTimer) { clearTimeout(followTimer); followTimer=null; } }, { passive:true });
   
   function applyWheelAccum(){
     wheelRaf = 0;
     const now = performance.now();
 
-    // Apply a fraction each frame; strongly damp to avoid long tails.
-    const apply = wheelAcc * 0.55;
-    wheelAcc -= apply;
+    if (wheelAcc === 0) return;
 
-    if (Math.abs(apply) < 0.001) {
-      wheelAcc = 0;
-      return;
+    // Apply at most N px per frame to avoid long inertial tails
+    const step = Math.sign(wheelAcc) * Math.min(90, Math.abs(wheelAcc));
+    wheelAcc -= step;
+
+    // If there hasn't been a "strong" wheel input recently, kill remaining inertia quickly
+    if (wheelLastStrongT === 0) wheelLastStrongT = now;
+    if (now - wheelLastStrongT > 160){
+      wheelAcc *= 0.25;
+      if (Math.abs(wheelAcc) < 1) wheelAcc = 0;
     }
+
+    // Convert to zoom factor (driven by controlled step)
+    const base = 0.0045;
+    const zspd = Math.max(0.01, Math.min(2.0, parseFloat(zoomSpeedEl?.value || "0.35")));
+    const speed = base * zspd;
+
+    const dyN = Math.sign(step) * Math.min(240, Math.abs(step));
+    const factor = Math.exp(-dyN * speed);
+
+    const cx = wheelCX, cy = wheelCY;
+
+    // --- update BigFloat camera first (robust at extreme zoom) ---
+    const fBF = bfFromNumber(factor);
+    scaleBF = bfMul(scaleBF, fBF);
+
+    const dxPix = Math.round(cx - W*0.5);
+    const dyPix = Math.round(cy - H*0.5);
+
+    const invF = 1.0 / factor;
+    const scaleBeforeBF = bfMul(scaleBF, bfFromNumber(invF));
+    const deltaScaleBF = bfAdd(scaleBeforeBF, {m:-scaleBF.m, e:scaleBF.e});
+
+    centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(dxPix), deltaScaleBF));
+    centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(dyPix), deltaScaleBF));
+
+    // --- float camera (for normal depths & standard mode) ---
+    const before = scaleF;
+    scaleF *= factor;
+    const after = scaleF;
+    const dx = (cx - W*0.5) * (before - after);
+    const dy = (cy - H*0.5) * (before - after);
+    centerX += dx;
+    centerY += dy;
+
+    // DeepNav activation threshold
+    if (deepNavEnabled && (!Number.isFinite(scaleF) || scaleF === 0 || Math.abs(Math.log2(scaleF)) > 1020)) {
+      deepNavActive = true;
+      centerX = bfToNumberApprox(centerXBF);
+      centerY = bfToNumberApprox(centerYBF);
+      scaleF  = bfToNumberApprox(scaleBF);
+      updateHUD("DeepNav active (Followで追従 / HQで最終)", 0, 0, 0, 0, 0);
+      scheduleFollowPreview("wheel");
+    } else {
+      deepNavActive = false;
+      requestRender("wheel", { preview:true });
+    }
+
+    if (wheelAcc !== 0) {
+      wheelRaf = requestAnimationFrame(applyWheelAccum);
+    }
+  }
+
 
     // Convert to zoom factor (same behavior as before, but driven by smoothed delta)
     const base = 0.0045;
@@ -453,24 +519,33 @@ canvas.addEventListener("wheel", (ev) => {
     if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
 
     const now = performance.now();
+
     // normalize delta (line-mode becomes pixels), then clamp spikes
     let dyN = ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
-    dyN = Math.sign(dyN) * Math.min(300, Math.abs(dyN));
+    dyN = Math.sign(dyN) * Math.min(320, Math.abs(dyN));
 
-    // cut off tiny inertial noise
+    // cut off tiny noise
     if (Math.abs(dyN) < 0.6) return;
 
-    // store latest cursor for cursor-centered zoom
+    // cursor-centered zoom uses latest pointer position
     const p = canvasXY(ev);
     wheelCX = p.x; wheelCY = p.y;
 
-    // Burst behavior: reset accumulator if there's a pause
-    if (now - wheelLastT > 180) wheelAcc = 0;
+    // Inertial tail killer:
+    // After the last "strong" wheel input, ignore small deltas that keep coming from trackpad inertia.
+    if (wheelLastStrongT === 0) wheelLastStrongT = now;
+    const isStrong = Math.abs(dyN) >= 6;
+    if (isStrong) {
+      wheelLastStrongT = now;
+    } else {
+      if (now - wheelLastStrongT > 120) return; // ignore tail
+    }
+
     wheelLastT = now;
 
-    // Accumulate and clamp total to avoid runaway
+    // Accumulate but clamp total so it can't run away
     wheelAcc += dyN;
-    wheelAcc = Math.max(-360, Math.min(360, wheelAcc));
+    wheelAcc = Math.max(-480, Math.min(480, wheelAcc));
 
     if (!wheelRaf) wheelRaf = requestAnimationFrame(applyWheelAccum);
   }, { passive:false });
