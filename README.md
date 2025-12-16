@@ -117,3 +117,9 @@ GitHub Pages 手順
 ## v9.4.3
 - ズーム挙動をCAD式（カーソル固定）に統一（中心寄せ補助やトグルを撤去）
 - ドラッグ操作：左ボタン／ホイール押し込み（中ボタン）のどちらでも移動可能
+
+
+## v9.4.4
+- ドラッグ修正：active pointer idでガード／ボタン解除(ev.buttons==0)で即停止／lostpointercapture対応
+- CAD式：シングルクリックで中心移動を廃止（誤操作防止）、中心移動はダブルクリックのみに
+- 中ボタン（ホイール押し込み）でのブラウザ自動スクロールを抑制（auxclick/contextmenu preventDefault）

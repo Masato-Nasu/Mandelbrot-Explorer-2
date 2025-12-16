@@ -295,6 +295,7 @@ function fixed2f(v, bits){
 
   // Interaction
   let isDragging = false;
+  let activePid = null;
   let downX = 0, downY = 0, moved = false, downT = 0;
   let lastX = 0, lastY = 0;
   let renderToken = 0;
@@ -359,6 +360,7 @@ function fixed2f(v, bits){
     }
     canvas.setPointerCapture(ev.pointerId);
     isDragging = true;
+    activePid = ev.pointerId;
     moved = false;
     downT = performance.now();
     const p = canvasXY(ev);
@@ -368,6 +370,9 @@ function fixed2f(v, bits){
 
   canvas.addEventListener("pointermove", (ev) => {
     if (!isDragging) return;
+    if (activePid !== null && ev.pointerId !== activePid) return;
+    // Some environments keep firing move after release; stop immediately.
+    if (ev.pointerType === "mouse" && ev.buttons === 0) { isDragging = false; activePid = null; return; }
     ev.preventDefault();
     const p = canvasXY(ev);
     const dx = p.x - lastX;
@@ -395,23 +400,16 @@ function fixed2f(v, bits){
   canvas.addEventListener("pointerup", (ev) => {
     ev.preventDefault();
     isDragging = false;
-    const dt = performance.now() - downT;
-    // Click-to-center: short tap only (avoid accidental recenter after slow drag)
-    if (!moved && dt < 250) {
-      const p = canvasXY(ev);
-      const dxPix = (p.x - W*0.5);
-      const dyPix = (p.y - H*0.5);
-      centerX += dxPix * scaleF;
-      centerY += dyPix * scaleF;
-      centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(dxPix), scaleBF));
-      centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(dyPix), scaleBF));
-      if (deepNavActive) scheduleFollowPreview("click");
-      else schedule("click");
-    }
+    activePid = null;
+    // CAD-style: single click does nothing (prevents accidental recenters).
+    // Recenter is on double-click.
   }, { passive:false });
-  canvas.addEventListener("pointercancel", () => { isDragging=false; }, { passive:true });
+  canvas.addEventListener("pointercancel", (ev) => { isDragging=false; activePid=null; }, { passive:true });
 
-  canvas.addEventListener("wheel", (ev) => {
+  canvas.addEventListener("lostpointercapture", (ev) => { isDragging=false; activePid=null; }, { passive:true });
+    canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
+  canvas.addEventListener("auxclick", (ev) => ev.preventDefault());
+canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     hqOnUserInput();
