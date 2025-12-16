@@ -87,14 +87,13 @@
 
   const $ = (id) => document.getElementById(id);
 
-  const canvas
-// Safe element handles (mobile panel)
-const panelCloseEl = document.getElementById('panelCloseEl');
-const fabPanelEl = document.getElementById('fabPanelEl') || document.getElementById('helpBtn');
-const fabEl = document.getElementById('fabEl') || document.getElementById('helpBtn') || document.getElementById('fabPanel');
- = $("c");
+  const canvas = $("c");
 
-  // PANEL_SHOWHIDE_JS_V967 (late-binding; works even if app.js loads before body)
+  // Safe element handles (mobile panel / help)
+  const panelCloseEl = document.getElementById("panelClose");
+  const fabPanelEl = document.getElementById("fabPanel");
+  const fabEl = document.getElementById("fab") || document.getElementById("helpBtn") || fabPanelEl;
+// PANEL_SHOWHIDE_JS_V967 (late-binding; works even if app.js loads before body)
   function setPanelVisible(on){
     const p = document.getElementById("uiPanel");
     if(!p) return;
