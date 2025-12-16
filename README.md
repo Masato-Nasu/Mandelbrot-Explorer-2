@@ -45,3 +45,8 @@ GitHub Pages 手順
 - ホイール速度をスライダー（Zoom Speed）に一本化（Alt/Ctrl/Shift不要）
 - クリックで中心合わせ、ダブルクリックで中心合わせ＋少しズームイン
 - DeepNav中は Follow で自動追従（Pキー不要）
+
+
+## v9.1.1
+- ドラッグ改善：touch-action:none + pointerイベントをpassive:false + preventDefault
+- クリック判定を「短いタップのみ」にして、ドラッグ後の誤中心合わせを抑制

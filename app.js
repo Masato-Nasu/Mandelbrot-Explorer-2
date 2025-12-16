@@ -254,7 +254,7 @@ function fixed2f(v, bits){
 
   // Interaction
   let isDragging = false;
-  let downX = 0, downY = 0, moved = false;
+  let downX = 0, downY = 0, moved = false, downT = 0;
   let lastX = 0, lastY = 0;
   let renderToken = 0;
   let debounce = 0;
@@ -283,20 +283,26 @@ function fixed2f(v, bits){
   }
 
   canvas.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
     canvas.setPointerCapture(ev.pointerId);
     isDragging = true;
     moved = false;
+    downT = performance.now();
     const p = canvasXY(ev);
     downX = p.x; downY = p.y;
     lastX = p.x; lastY = p.y;
-  }, { passive:true });
+  }, { passive:false });
 
   canvas.addEventListener("pointermove", (ev) => {
     if (!isDragging) return;
+    ev.preventDefault();
     const p = canvasXY(ev);
     const dx = p.x - lastX;
     const dy = p.y - lastY;
-    if (!moved && (Math.abs(p.x - downX) + Math.abs(p.y - downY) > 3)) moved = true;
+    if (!moved) {
+      const ddx = (p.x - downX), ddy = (p.y - downY);
+      if (ddx*ddx + ddy*ddy > 64) moved = true; // 8px
+    }
     lastX = p.x; lastY = p.y;
     centerX -= dx * scaleF;
     centerY -= dy * scaleF;
@@ -311,25 +317,25 @@ function fixed2f(v, bits){
       return;
     }
     schedule("pan");
-  }, { passive:true });
+  }, { passive:false });
 
   canvas.addEventListener("pointerup", (ev) => {
+    ev.preventDefault();
     isDragging = false;
-    // Click-to-center (no drag): re-center to cursor position
-    if (!moved) {
+    const dt = performance.now() - downT;
+    // Click-to-center: short tap only (avoid accidental recenter after slow drag)
+    if (!moved && dt < 250) {
       const p = canvasXY(ev);
       const dxPix = (p.x - W*0.5);
       const dyPix = (p.y - H*0.5);
-      // float
       centerX += dxPix * scaleF;
       centerY += dyPix * scaleF;
-      // BigFloat
       centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(dxPix), scaleBF));
       centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(dyPix), scaleBF));
       if (deepNavActive) scheduleFollowPreview("click");
       else schedule("click");
     }
-  }, { passive:true });
+  }, { passive:false });
   canvas.addEventListener("pointercancel", () => { isDragging=false; }, { passive:true });
 
   canvas.addEventListener("wheel", (ev) => {
