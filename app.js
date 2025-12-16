@@ -165,6 +165,12 @@
   let deepNavActive = false;
   let followEnabled = true;
   let followTimer = null;
+  // wheel smoothing (kills "inertial chain reaction" on trackpads)
+  let wheelAcc = 0;
+  let wheelRaf = 0;
+  let wheelLastT = 0;
+  let wheelCX = 0;
+  let wheelCY = 0;
   let centerXBF = bfFromNumber(centerX);
   let centerYBF = bfFromNumber(centerY);
   let scaleBF   = bfFromNumber(scaleF); // per-pixel scale in BigFloat
@@ -371,55 +377,102 @@ function fixed2f(v, bits){
   }, { passive:false });
   canvas.addEventListener("pointercancel", () => { isDragging=false; }, { passive:true });
 
-  canvas.addEventListener("wheel", (ev) => {
-    ev.preventDefault();
-    if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
-    const {x:px, y:py} = canvasXY(ev);
+  
+  function applyWheelAccum(){
+    wheelRaf = 0;
+    const now = performance.now();
 
+    // Apply a fraction each frame; strongly damp to avoid long tails.
+    const apply = wheelAcc * 0.55;
+    wheelAcc -= apply;
+
+    if (Math.abs(apply) < 0.001) {
+      wheelAcc = 0;
+      return;
+    }
+
+    // Convert to zoom factor (same behavior as before, but driven by smoothed delta)
     const base = 0.0045;
-    const zspd = Math.max(0.01, Math.min(3.0, parseFloat(zoomSpeedEl?.value || "0.35")));
-    let dyN = ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
-    // 一部デバイスでdeltaが極端に大きく出るので、ズームが跳ねないように抑制
-    dyN = Math.sign(dyN) * Math.min(240, Math.abs(dyN));
+    const zspd = Math.max(0.01, Math.min(2.0, parseFloat(zoomSpeedEl?.value || "0.35")));
     const speed = base * zspd;
+
+    const dyN = Math.sign(apply) * Math.min(240, Math.abs(apply));
     const factor = Math.exp(-dyN * speed);
 
-    const dxPix = (px - W*0.5);
-    const dyPix = (py - H*0.5);
+    const cx = wheelCX, cy = wheelCY;
 
-    // --- BigFloat camera (robust at extreme depth) ---
-    const scaleBeforeBF = scaleBF;
+    // --- update BigFloat camera first (robust at extreme zoom) ---
     const fBF = bfFromNumber(factor);
-    const scaleAfterBF = bfMul(scaleBF, fBF);
-    const deltaScaleBF = bfAdd(scaleBeforeBF, {m:-scaleAfterBF.m, e:scaleAfterBF.e}); // before - after
+    scaleBF = bfMul(scaleBF, fBF);
+
+    const dxPix = Math.round(cx - W*0.5);
+    const dyPix = Math.round(cy - H*0.5);
+
+    const invF = 1.0 / factor;
+    const scaleBeforeBF = bfMul(scaleBF, bfFromNumber(invF));
+    const deltaScaleBF = bfAdd(scaleBeforeBF, {m:-scaleBF.m, e:scaleBF.e});
 
     centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(dxPix), deltaScaleBF));
     centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(dyPix), deltaScaleBF));
-    scaleBF = scaleAfterBF;
 
-    // --- float camera (fast for normal depths) ---
-    const beforeF = scaleF;
-    scaleF = Math.min(10, scaleF * factor);
-    centerX += dxPix * (beforeF - scaleF);
-    centerY += dyPix * (beforeF - scaleF);
+    // --- float camera (for normal depths & standard mode) ---
+    const before = scaleF;
+    scaleF *= factor;
+    const after = scaleF;
+    const dx = (cx - W*0.5) * (before - after);
+    const dy = (cy - H*0.5) * (before - after);
+    centerX += dx;
+    centerY += dy;
 
-    // Activate DeepNav when float stops meaningfully changing (subnormal/zero range).
-    const absM = (scaleBF.m < 0n) ? -scaleBF.m : scaleBF.m;
-    const mBits = absM === 0n ? 0 : absM.toString(2).length;
-    const log2Scale = (mBits ? (mBits - 1) : -999999) + (scaleBF.e|0);
-    deepNavActive = deepNavEnabled && (scaleF === 0 || !Number.isFinite(scaleF) || log2Scale < -1080);
-
-    if (deepNavActive){
-      // keep UI in sync (approx; may show 0 for scaleF at extreme depths)
+    // DeepNav activation threshold
+    if (deepNavEnabled && (!Number.isFinite(scaleF) || scaleF === 0 || Math.abs(Math.log2(scaleF)) > 1020)) {
+      deepNavActive = true;
       centerX = bfToNumberApprox(centerXBF);
       centerY = bfToNumberApprox(centerYBF);
       scaleF  = bfToNumberApprox(scaleBF);
       updateHUD("DeepNav active (Followで追従 / HQで最終)", 0, 0, 0, 0, 0);
       scheduleFollowPreview("wheel");
-      return;
+    } else {
+      deepNavActive = false;
+      requestRender("wheel", { preview:true });
     }
 
-    schedule("zoom");
+    // Stop long tails: if user stopped input recently, snap remainder quickly.
+    if (now - wheelLastT > 90) {
+      wheelAcc *= 0.15;
+      if (Math.abs(wheelAcc) < 0.05) wheelAcc = 0;
+    }
+
+    if (wheelAcc !== 0) {
+      wheelRaf = requestAnimationFrame(applyWheelAccum);
+    }
+  }
+
+canvas.addEventListener("wheel", (ev) => {
+    ev.preventDefault();
+    if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
+
+    const now = performance.now();
+    // normalize delta (line-mode becomes pixels), then clamp spikes
+    let dyN = ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
+    dyN = Math.sign(dyN) * Math.min(300, Math.abs(dyN));
+
+    // cut off tiny inertial noise
+    if (Math.abs(dyN) < 0.6) return;
+
+    // store latest cursor for cursor-centered zoom
+    const p = canvasXY(ev);
+    wheelCX = p.x; wheelCY = p.y;
+
+    // Burst behavior: reset accumulator if there's a pause
+    if (now - wheelLastT > 180) wheelAcc = 0;
+    wheelLastT = now;
+
+    // Accumulate and clamp total to avoid runaway
+    wheelAcc += dyN;
+    wheelAcc = Math.max(-360, Math.min(360, wheelAcc));
+
+    if (!wheelRaf) wheelRaf = requestAnimationFrame(applyWheelAccum);
   }, { passive:false });
 
   canvas.addEventListener("dblclick", (ev) => {
