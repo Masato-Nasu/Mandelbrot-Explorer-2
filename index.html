@@ -50,7 +50,38 @@
       font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
       max-height:40vh;overflow:auto;
     }
-  </style>
+  
+    /* Help overlay */
+    #helpOverlay{
+      position:fixed; inset:0; display:none; z-index:9999;
+      background:rgba(0,0,0,0.70);
+      backdrop-filter: blur(3px);
+    }
+    #helpOverlay .panel{
+      position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+      width:min(720px, calc(100vw - 24px));
+      background:#111; color:#eee; border:1px solid #333;
+      border-radius:14px; padding:18px 18px 14px;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+    }
+    #helpOverlay h2{ margin:0 0 10px; font-size:18px; font-weight:700; }
+    #helpOverlay .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    #helpOverlay .card{
+      background:#151515; border:1px solid #2a2a2a; border-radius:12px;
+      padding:10px 12px; line-height:1.35;
+    }
+    #helpOverlay .k{ display:inline-block; min-width: 9.5em; color:#bbb; }
+    #helpOverlay .note{ color:#bbb; font-size:12px; margin-top:10px; }
+    #helpOverlay .btnRow{ display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
+    #helpOverlay button{
+      border:1px solid #3a3a3a; background:#1b1b1b; color:#eee;
+      border-radius:10px; padding:8px 12px; cursor:pointer;
+    }
+    #helpOverlay button:hover{ background:#242424; }
+    @media (max-width: 640px){
+      #helpOverlay .grid{ grid-template-columns: 1fr; }
+    }
+</style>
 </head>
 <body>
   <canvas id="c"></canvas>
@@ -101,8 +132,8 @@
       <input id="autoSettle" type="checkbox" checked />
     </div>
     <div class="row">
-      <label>Zoom Speed</label>
-      <input id="zoomSpeed" type="range" min="0.5" max="8" step="0.1" value="2.0" />
+      <label>Zoom Speed <span id="zoomSpeedVal" style="color:#bbb;font-size:12px;margin-left:6px;">0.50×</span></label>
+      <input id="zoomSpeed" type="range" min="0.05" max="2.0" step="0.01" value="0.50" />
     </div>
 
     <div class="btns">
@@ -110,17 +141,39 @@
       <button id="saveBtn" title="PNGとして保存">Save PNG</button>
       <button id="deepBtn" title="超深度では描画を止め、座標だけ更新して高速に潜る">DeepNav</button>
       <button id="resetBtn">Reset (R)</button>
+      <button id="helpBtn" title="使い方">?</button>
       <button id="nukeBtn" title="古いキャッシュを消す">Cache Nuke</button>
       <button onclick="location.href='./reset.html'">reset.html</button>
     </div>
 
     <div class="hint">
-      ホイール：ズーム（回転方向を反転）（<b>Alt</b>=ターボ / <b>Ctrl</b>=ハイパー / <b>Shift</b>=微調整）<br/>
-      ドラッグ：移動 / <b>R</b>：リセット / <b>S</b>：PNG保存 / <b>P</b>：プレビュー
+      ホイール：ズーム（カーソル中心） / ドラッグ：移動 / クリック：中心合わせ / ダブルクリック：ズームイン<br/>
+      <b>R</b>：リセット / <b>S</b>：PNG保存 / HQ Render：高精細
     </div>
   </div>
 
-  <div id="errBox"></div>
+  
+  <div id="helpOverlay" aria-hidden="true">
+    <div class="panel" role="dialog" aria-modal="true" aria-label="使い方">
+      <h2>Quick Start</h2>
+      <div class="grid">
+        <div class="card"><div><span class="k">ホイール</span>ズーム（カーソル中心）</div><div><span class="k">ドラッグ</span>移動（パン）</div></div>
+        <div class="card"><div><span class="k">クリック</span>中心合わせ</div><div><span class="k">ダブルクリック</span>中心合わせ＋ズームイン</div></div>
+        <div class="card"><div><span class="k">HQ Render</span>止め絵を高精細で仕上げ</div><div><span class="k">Save PNG / S</span>画像として保存</div></div>
+        <div class="card"><div><span class="k">DeepNav</span>超深度で“潜る”優先（必要ならHQで描画）</div><div><span class="k">Reset / R</span>初期位置へ</div></div>
+      </div>
+      <div class="note">
+        Tip: まずは適当にズームして、良い場所でHQ Render → Save PNG がおすすめです。<br/>
+        ※更新したのに表示が変わらない場合は Pages側の reset.html（キャッシュ掃除）を一度開いてください。
+      </div>
+      <div class="btnRow">
+        <button id="helpDontShow">次回は表示しない</button>
+        <button id="helpClose">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+<div id="errBox"></div>
 
   <!-- Bootloader: app.js が落ちてもエラーを画面に出す -->
   <script>

@@ -50,3 +50,13 @@ GitHub Pages 手順
 ## v9.1.1
 - ドラッグ改善：touch-action:none + pointerイベントをpassive:false + preventDefault
 - クリック判定を「短いタップのみ」にして、ドラッグ後の誤中心合わせを抑制
+
+
+## v9.2 (First-time Friendly)
+- 初回起動でQuick Startオーバーレイ表示（? / H で再表示）
+- 操作を単文化（説明文を現在の挙動に合わせて整理）
+
+
+## v9.2.1
+- Zoom Speed のレンジを低速側へ拡張（0.05×〜2.00×）
+- 現在値をラベル表示

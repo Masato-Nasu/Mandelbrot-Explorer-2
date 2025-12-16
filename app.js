@@ -104,13 +104,45 @@
   const deepBtn = $("deepBtn");
   const followBtn = $("followBtn");
   const zoomSpeedEl = $("zoomSpeed");
+  const zoomSpeedValEl = $("zoomSpeedVal");
   const resetBtn = $("resetBtn");
   const nukeBtn = $("nukeBtn");
+  const helpBtn = $("helpBtn");
+  const helpOverlay = document.getElementById("helpOverlay");
+  const helpClose = document.getElementById("helpClose");
+  const helpDontShow = document.getElementById("helpDontShow");
 
   function showErr(t){
     errBox.style.display = "block";
     errBox.textContent = t;
   }
+
+  const HELP_KEY = "mandelbrot_help_seen_v9_2";
+
+  function showHelp(force){
+    if (!helpOverlay) return;
+    helpOverlay.style.display = "block";
+    helpOverlay.setAttribute("aria-hidden","false");
+    if (force) {
+      // keep
+    }
+  }
+  function hideHelp(){
+    if (!helpOverlay) return;
+    helpOverlay.style.display = "none";
+    helpOverlay.setAttribute("aria-hidden","true");
+  }
+  function markHelpSeen(){
+    try{ localStorage.setItem(HELP_KEY, "1"); }catch(e){}
+  }
+  function shouldShowHelp(){
+    try{ return localStorage.getItem(HELP_KEY) !== "1"; }catch(e){ return true; }
+  }
+  function hideHelpAndMark(){
+    markHelpSeen();
+    hideHelp();
+  }
+
 
   // If any runtime error escapes, show it.
   window.addEventListener("error", (e) => showErr("[window.error]\n" + e.message + "\n" + e.filename + ":" + e.lineno + ":" + e.colno));
@@ -284,6 +316,7 @@ function fixed2f(v, bits){
 
   canvas.addEventListener("pointerdown", (ev) => {
     ev.preventDefault();
+    if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     canvas.setPointerCapture(ev.pointerId);
     isDragging = true;
     moved = false;
@@ -340,10 +373,11 @@ function fixed2f(v, bits){
 
   canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
+    if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     const {x:px, y:py} = canvasXY(ev);
 
     const base = 0.0080;
-    const zspd = Math.max(0.2, Math.min(12.0, parseFloat(zoomSpeedEl?.value || "2.0")));
+    const zspd = Math.max(0.01, Math.min(3.0, parseFloat(zoomSpeedEl?.value || "0.50")));
     const dyN = ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
     const speed = base * zspd;
     const factor = Math.exp(-dyN * speed);
@@ -388,6 +422,7 @@ function fixed2f(v, bits){
 
   canvas.addEventListener("dblclick", (ev) => {
     ev.preventDefault();
+    if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     const p = canvasXY(ev);
     // center to point
     const dxPix = (p.x - W*0.5);
@@ -407,6 +442,9 @@ function fixed2f(v, bits){
   window.addEventListener("keydown", (ev) => {
     if (ev.key.toLowerCase() === "r") doReset();
     if (ev.key.toLowerCase() === "s") savePNG();
+    if (ev.key === "?" || ev.key.toLowerCase() === "h") {
+      if (helpOverlay && helpOverlay.style.display==="block") hideHelp(); else showHelp(true);
+    }
   }, { passive:true });
 
   function doReset(){
@@ -693,3 +731,5 @@ function requestRender(reason="", opts={}){
   resize(true);
   requestRender("boot", {preview:false});
 })();
+
+function updateZoomSpeedLabel(){ /* noop */ }
