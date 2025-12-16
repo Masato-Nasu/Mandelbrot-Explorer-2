@@ -148,7 +148,7 @@
   // --- Mobile Mode (lightweight defaults + safer interactions) ---
   let mobileMode = false;
   
-  // Mobile FAB + panel collapse (v9.6.8)
+  // Mobile FAB + panel collapse (v9.6.9)
   var uiPanel = document.getElementById("uiPanel");
   
 const mobileModeBtn = $("mobileModeBtn");
@@ -288,37 +288,25 @@ const resetBtn = $("resetBtn");
     if (typeof detectMobile === "function" && detectMobile()) setPanelVisible(false);
   } catch(e) {}
   if (Math.min(innerWidth, innerHeight) <= 520) setPanelVisible(false);
-  /* forceCollapseIfMobile disabled v9.6.8 */
+  /* forceCollapseIfMobile disabled v9.6.9 */
 
   // Panel compact toggle (especially for mobile)
   zoomOutBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(-1); });
+  const fabZoomIn = document.getElementById("fabZoomIn");
+  const fabZoomOut = document.getElementById("fabZoomOut");
+  fabZoomIn?.addEventListener("click", (ev)=>{ ev.preventDefault(); zoomByButton(+1); });
+  fabZoomOut?.addEventListener("click", (ev)=>{ ev.preventDefault(); zoomByButton(-1); });
+  fabZoomIn?.addEventListener("touchend", (ev)=>{ ev.preventDefault(); zoomByButton(+1); }, {passive:false});
+  fabZoomOut?.addEventListener("touchend", (ev)=>{ ev.preventDefault(); zoomByButton(-1); }, {passive:false});
+
 
 
   resetBtn?.addEventListener("click", (ev) => { ev.preventDefault(); goHome(); });
   const nukeBtn = $("nukeBtn");
-  const helpBtn = $("helpBtn");
-  
-  const helpClose = document.getElementById("helpClose");
-  const helpDontShow = document.getElementById("helpDontShow");
-
-  function showErr(t){
+function showErr(t){
     errBox.style.display = "block";
     errBox.textContent = t;
   }
-
-  const HELP_KEY = "mandelbrot_help_seen_v9_2";
-
-  function showHelp(force){
-    
-    if (force) {
-      // keep
-    }
-  }
-  function hideHelp(){
-    
-  }
-  function markHelpSeen(){
-    try{ localStorage.setItem(HELP_KEY, "1"); }catch(e){}
   }
   function shouldShowHelp(){
     try{ return localStorage.getItem(HELP_KEY) !== "1"; }catch(e){ return true; }
