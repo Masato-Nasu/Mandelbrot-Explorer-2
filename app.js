@@ -1,6 +1,6 @@
 // Mandelbrot Explorer UltraDeep v7 (stable rewrite)
 (() => {
-// ---- BigFloat (DeepNav) : value = m * 2^e (BigInt mantissa, integer exponent) ----
+  // ---- BigFloat (DeepNav) : value = m * 2^e (BigInt mantissa, integer exponent) ----
   function bfNorm(b){
     let m = b.m, e = b.e|0;
     if (m === 0n) return {m:0n, e:0};
@@ -87,20 +87,13 @@
 
   const $ = (id) => document.getElementById(id);
 
+  // Safe element handles (mobile panel)
+  const panelCloseEl = document.getElementById('panelCloseEl');
+  const fabPanelEl = document.getElementById('fabPanelEl') || document.getElementById('helpBtn');
+  const fabEl = document.getElementById('fabEl') || document.getElementById('helpBtn') || document.getElementById('fabPanel');
   const canvas = $("c");
 
-  // Safe element handles (mobile panel / help)
-  const panelCloseEl = document.getElementById("panelClose");
-  const fabPanelEl = document.getElementById("fabPanel");
-  const fabEl = document.getElementById("fab") || document.getElementById("helpBtn") || fabPanelEl;
-
-  // Close / Help button handles (avoid ReferenceError)
-  const closeBtnEl = document.getElementById("panelClose")
-    || document.getElementById("closeBtnEl")
-    || document.querySelector("[data-close-panel]")
-    || document.querySelector(".panelClose")
-    || null;
-// PANEL_SHOWHIDE_JS_V967 (late-binding; works even if app.js loads before body)
+  // PANEL_SHOWHIDE_JS_V967 (late-binding; works even if app.js loads before body)
   function setPanelVisible(on){
     const p = document.getElementById("uiPanel");
     if(!p) return;
@@ -113,16 +106,16 @@
   }
   function bindPanelControls(){
     const fabEl = document.getElementById("fabPanelEl");
-    const closeBtnEl = document.getElementById("panelCloseEl");
+    const closeBtn = document.getElementById("panelCloseEl");
     if(fabEl && !fabEl.__bound){
       fabEl.__bound = true;
       fabEl && fabEl.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
       fabEl && fabEl.addEventListener("touchend", (ev)=>{ ev.preventDefault(); togglePanel(); }, {passive:false});
     }
-    if(closeBtnEl && !closeBtnEl.__bound){
-      closeBtnEl.__bound = true;
-      closeBtnEl && closeBtnEl.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
-      closeBtnEl && closeBtnEl.addEventListener("touchend", (ev)=>{ ev.preventDefault(); setPanelVisible(false); }, {passive:false});
+    if(closeBtn && !closeBtn.__bound){
+      closeBtn.__bound = true;
+      closeBtn.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
+      closeBtn.addEventListener("touchend", (ev)=>{ ev.preventDefault(); setPanelVisible(false); }, {passive:false});
     }
     // default: hide on small screens
     try{
@@ -136,7 +129,7 @@
   }
   window.addEventListener("pageshow", () => { try{ bindPanelControls(); }catch(e){} }, {passive:true});
 
-    if (canvas) canvas.style.touchAction = "none";
+  if (canvas) canvas.style.touchAction = "none";
   const hud = $("hud");
   const errBox = $("errBox");
 
@@ -162,10 +155,10 @@
   // Mobile FAB + panel collapse (v9.6.10)
   var uiPanel = document.getElementById("uiPanel");
   
-const mobileModeBtn = $("mobileModeBtn");
+  const mobileModeBtn = $("mobileModeBtn");
   const zoomInBtn = $("zoomInBtn");
   const zoomOutBtn = $("zoomOutBtn");
-// Recommended mobile defaults
+  // Recommended mobile defaults
   const MOBILE_BITS = 768;
   const MOBILE_ITER = 520;
   const MOBILE_STEP = 6;
@@ -189,10 +182,10 @@ const mobileModeBtn = $("mobileModeBtn");
 
     // Apply lightweight settings (only if corresponding controls exist)
     try {
-      if (bitsEl) { bitsEl.value = String(MOBILE_BITS); bitsValEl && (bitsValEl.textContent = String(MOBILE_BITS)); }
-      if (iterEl) { iterEl.value = String(MOBILE_ITER); iterValEl && (iterValEl.textContent = String(MOBILE_ITER)); }
-      if (stepEl) { stepEl.value = String(MOBILE_STEP); stepValEl && (stepValEl.textContent = String(MOBILE_STEP)); }
-      if (resEl)  { resEl.value  = String(MOBILE_RES);  resValEl && (resValEl.textContent  = String(MOBILE_RES)); }
+      if (bitsEl) { bitsEl.value = String(MOBILE_BITS); }
+      if (iterEl) { iterEl.value = String(MOBILE_ITER); }
+      if (stepEl) { stepEl.value = String(MOBILE_STEP); }
+      if (resEl)  { resEl.value  = String(MOBILE_RES);  }
     } catch(e) {}
 
     // Prefer stable preview on mobile
@@ -201,9 +194,8 @@ const mobileModeBtn = $("mobileModeBtn");
     requestRender("mobileMode", { preview:true });
   }
 
-const zoomSpeedEl = $("zoomSpeed");
-  const zoomSpeedValEl = $("zoomSpeedVal");
-const resetBtn = $("resetBtn");
+  const zoomSpeedEl = $("zoomSpeed");
+  const resetBtn = $("resetBtn");
 
   function goHome(){
     resize(false);
@@ -221,22 +213,21 @@ const resetBtn = $("resetBtn");
     try{ if (followTimer) { clearTimeout(followTimer); followTimer=null; } }catch(e){}
     requestRender("home", {preview:true});
   }
+
   // Mobile Mode: restore / auto-detect (defer so core vars initialize)
   setTimeout(() => {
-  // Mobile Mode: restore / auto-detect
-  try {
-    const stored = localStorage.getItem("mobileMode");
-    if (stored === "1") setMobileMode(true);
-    else if (stored === null && detectMobile()) setMobileMode(true);
-  } catch(e) {
-    if (detectMobile()) setMobileMode(true);
-  }
+    try {
+      const stored = localStorage.getItem("mobileMode");
+      if (stored === "1") setMobileMode(true);
+      else if (stored === null && detectMobile()) setMobileMode(true);
+    } catch(e) {
+      if (detectMobile()) setMobileMode(true);
+    }
   }, 0);
   mobileModeBtn?.addEventListener("click", (ev) => {
     ev.preventDefault();
     setMobileMode(!mobileMode);
   });
-
   
   // Track last pointer (for mobile zoom buttons)
   let lastPX = null, lastPY = null;
@@ -254,15 +245,14 @@ const resetBtn = $("resetBtn");
   canvas.addEventListener("pointermove", (ev)=>{ if(ev.buttons) setLastPointerFromEvent(ev); }, {passive:true});
   canvas.addEventListener("touchstart", setLastPointerFromEvent, {passive:true});
   canvas.addEventListener("touchmove", setLastPointerFromEvent, {passive:true});
-// Zoom buttons for touch devices
+
+  // Zoom buttons for touch devices
   function zoomByButton(dir){
     // dir: +1 zoom in, -1 zoom out
     const factor = (dir > 0) ? 0.80 : 1.25;
     // Zoom around screen center (simple & predictable on mobile)
     const px = W*0.5, py = H*0.5;
-    const dxPix = (px - W*0.5);
-    const dyPix = (py - H*0.5);
-
+    
     // Apply scale
     scaleF *= factor;
     scaleBF = bfMul(scaleBF, bfFromNumber(factor));
@@ -273,21 +263,14 @@ const resetBtn = $("resetBtn");
   zoomInBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(+1); });
 
   // FAB bindings (always available on mobile)
-
   function panelToggle(){
     if(!uiPanel) return;
     setPanelVisible(!uiPanel.classList.contains("hidden"));
   }
 
-  function zoomByButtonCenter(dir){
-    const factor = (dir > 0) ? 0.80 : 1.25;
-    scaleF *= factor;
-    scaleBF = bfMul(scaleBF, bfFromNumber(factor));
-    requestRender("fabZoom", { preview:true });
-  }
-
   fabEl && fabEl.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
-  closeBtnEl && closeBtnEl.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
+  const closeBtn = document.getElementById("panelCloseEl"); // re-fetch safe
+  closeBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
 
   // default: hide panel on mobile
   try{
@@ -299,7 +282,6 @@ const resetBtn = $("resetBtn");
     if (typeof detectMobile === "function" && detectMobile()) setPanelVisible(false);
   } catch(e) {}
   if (Math.min(innerWidth, innerHeight) <= 520) setPanelVisible(false);
-  /* forceCollapseIfMobile disabled v9.6.10 */
 
   // Panel compact toggle (especially for mobile)
   zoomOutBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(-1); });
@@ -309,8 +291,6 @@ const resetBtn = $("resetBtn");
   fabZoomOut?.addEventListener("click", (ev)=>{ ev.preventDefault(); zoomByButton(-1); });
   fabZoomIn?.addEventListener("touchend", (ev)=>{ ev.preventDefault(); zoomByButton(+1); }, {passive:false});
   fabZoomOut?.addEventListener("touchend", (ev)=>{ ev.preventDefault(); zoomByButton(-1); }, {passive:false});
-
-
 
   resetBtn?.addEventListener("click", (ev) => { ev.preventDefault(); goHome(); });
   const nukeBtn = $("nukeBtn");
@@ -338,7 +318,7 @@ const resetBtn = $("resetBtn");
     showErr("[unhandledrejection]\n" + msg);
   }, {passive:true});
 
-const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
   var dpr = 1; // safe init (no TDZ on mobile)
   dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
   var cssW = 0, cssH = 0; // var to avoid TDZ on some mobile browsers
@@ -350,13 +330,11 @@ const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
   let initialScale = 0;      // float64 (complex per pixel)
   let scaleF = 0;            // float64
 
-  // DeepNav BigFloat camera (prevents "depth ceiling" where Number stops changing)
-  // DeepNav turns 'active' when float64 precision becomes useless.
-  // Trigger earlier than underflow so you can keep exploring smoothly.
+  // DeepNav BigFloat camera
   const DEEPNAV_TRIGGER_LOG2 = 80; // smaller => earlier (recommended 60-120)
   let deepNavEnabled = false; // disabled (simplified UI)
   let deepNavActive = false;
-    if (deepAlways && deepNavEnabled) deepNavActive = true;
+  
   var deepAlways = false; // disabled (simplified UI)
   var lastDeepActive = false;
   let followEnabled = true;
@@ -367,9 +345,7 @@ const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
   let scaleBF   = bfFromNumber(scaleF); // per-pixel scale in BigFloat
 
   // UltraDeep fixed-point helpers (BigInt)
-// Number -> fixed-point BigInt with arbitrary bits using IEEE-754 decomposition.
-// This avoids Math.pow(2,bits) overflow when bits > ~1023.
-function f2fixed(n, bits){
+  function f2fixed(n, bits){
     if (!Number.isFinite(n)) throw new RangeError("f2fixed: non-finite");
     bits = bits|0;
     if (n === 0) return 0n;
@@ -385,13 +361,11 @@ function f2fixed(n, bits){
     const exp = (hi >>> 20) & 0x7ff;
     const fracHi = hi & 0xFFFFF;
 
-    let mant = (BigInt(fracHi) << 32n) | BigInt(lo); // 52-bit fraction (no hidden bit yet)
+    let mant = (BigInt(fracHi) << 32n) | BigInt(lo); // 52-bit fraction
     let e2;
     if (exp === 0) {
-      // subnormal: value = mant * 2^-1074
       e2 = -1074;
     } else {
-      // normal: value = (2^52 + mant) * 2^(exp-1023-52)
       mant = (1n << 52n) | mant;
       e2 = (exp - 1023 - 52);
     }
@@ -402,24 +376,20 @@ function f2fixed(n, bits){
       out = mant << BigInt(shift);
     } else {
       const rshift = BigInt(-shift);
-      // round-to-nearest: add 0.5 ulp before shifting
       const half = 1n << (rshift - 1n);
       out = (mant + half) >> rshift;
     }
     return sign * out;
   }
 
-// fixed-point BigInt -> Number (only safe for moderate bits; used for debug only)
-function fixed2f(v, bits){
+  function fixed2f(v, bits){
     bits = bits|0;
     if (bits > 1023) {
-      // Avoid Infinity; best-effort downshift for debug
       const sh = bits - 1023;
       v = v >> BigInt(sh);
       bits = 1023;
     }
-
-      return Number(v) / Math.pow(2, bits);
+    return Number(v) / Math.pow(2, bits);
   }
 
   // Workers
@@ -463,7 +433,6 @@ function fixed2f(v, bits){
 
   // Iteration heuristic
   function itersForScale(scale){
-    // scale is per-pixel complex scale
     let lnMag = 0;
     if (deepNavActive || !Number.isFinite(scale) || scale === 0){
       const absM = (scaleBF.m < 0n) ? -scaleBF.m : scaleBF.m;
@@ -488,8 +457,8 @@ function fixed2f(v, bits){
   let lastX = 0, lastY = 0;
   let isMouseDragging = false;
   let mouseButtonMask = 0;
-  var renderToken = 0; // var to avoid TDZ on some mobile browsers
-  // HQ sequence control (so you can keep exploring after a HQ render)
+  var renderToken = 0; // var to avoid TDZ
+  // HQ sequence control
   let hqActive = false;
   let hqTimers = [];
   let hqPrevStep = null;
@@ -509,7 +478,6 @@ function fixed2f(v, bits){
     hqActive = false;
   }
   function hqOnUserInput(){
-    // Called on wheel/drag/etc. Stops future HQ passes and restores interactive settings.
     if (!hqActive) return;
     hqAbort(true);
   }
@@ -523,12 +491,6 @@ function fixed2f(v, bits){
     const y = (ev.clientY - rect.top) * (H / rect.height);
     return {x,y};
   }
-  function pixelToComplex(px, py){
-    return {
-      x: centerX + (px - W*0.5) * scaleF,
-      y: centerY + (py - H*0.5) * scaleF
-    };
-  }
 
   function schedule(reason){
     clearTimeout(debounce);
@@ -540,11 +502,9 @@ function fixed2f(v, bits){
   }
 
   canvas.addEventListener("pointerdown", (ev) => {
-    // Mouse drag uses dedicated mouse events (more reliable across browsers)
     if (ev.pointerType === "mouse") return;
     ev.preventDefault();
     hqOnUserInput();
-    // Drag start: allow LEFT button or MIDDLE (wheel press) for mouse.
     if (ev.pointerType === "mouse") {
       const ok = (ev.button === 0 || ev.button === 1 || (ev.buttons & 1) || (ev.buttons & 4));
       if (!ok) return;
@@ -562,7 +522,6 @@ function fixed2f(v, bits){
   canvas.addEventListener("pointermove", (ev) => {
     if (!isDragging) return;
     if (activePid !== null && ev.pointerId !== activePid) return;
-    // Some environments keep firing move after release; stop immediately.
     if (ev.pointerType === "mouse" && ev.buttons === 0) { isDragging = false; activePid = null; return; }
     ev.preventDefault();
     const p = canvasXY(ev);
@@ -575,13 +534,12 @@ function fixed2f(v, bits){
     lastX = p.x; lastY = p.y;
     centerX -= dx * scaleF;
     centerY -= dy * scaleF;
-    // BigFloat pan: centerBF -= dPix * scaleBF
     centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(-dx), scaleBF));
     centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(-dy), scaleBF));
     if (deepNavActive){
       centerX = bfToNumberApprox(centerXBF);
       centerY = bfToNumberApprox(centerYBF);
-      updateHUD("DeepNav active (log2>|"+DEEPNAV_TRIGGER_LOG2+"|)  Follow/HQ", 0, 0, 0, 0, 0);
+      updateHUD("DeepNav active", 0, 0, 0, 0, 0);
       requestDeepPanPreview("pan");
       return;
     }
@@ -592,18 +550,14 @@ function fixed2f(v, bits){
     ev.preventDefault();
     isDragging = false;
     activePid = null;
-    // CAD-style: single click does nothing (prevents accidental recenters).
-    // Recenter is on double-click.
   }, { passive:false });
   canvas.addEventListener("pointercancel", (ev) => { isDragging=false; activePid=null; }, { passive:true });
 
   canvas.addEventListener("lostpointercapture", (ev) => { isDragging=false; activePid=null; }, { passive:true });
-    canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
+  canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
   canvas.addEventListener("auxclick", (ev) => ev.preventDefault());
 
-  // Mouse drag fallback (LEFT or MIDDLE / wheel-press). More reliable than pointer events for mouse.
   function mouseDownOk(ev){
-    // button: 0=left, 1=middle
     return (ev.button === 0 || ev.button === 1);
   }
 
@@ -611,50 +565,37 @@ function fixed2f(v, bits){
     if (!mouseDownOk(ev)) return;
     ev.preventDefault();
     hqOnUserInput();
-
-    // stop browser autoscroll on middle click
     mouseButtonMask = (ev.button === 0) ? 1 : 4;
-
     isMouseDragging = true;
     moved = false;
     downT = performance.now();
-
     const p = canvasXY(ev);
     downX = p.x; downY = p.y;
     lastX = p.x; lastY = p.y;
-
-    // capture mouse outside canvas while dragging
     window.addEventListener("mousemove", onMouseMove, { passive:false });
     window.addEventListener("mouseup", onMouseUp, { passive:false, once:true });
   }, { passive:false });
 
   function onMouseMove(ev){
     if (!isMouseDragging) return;
-    // If button released (some environments), stop immediately
     if ((ev.buttons & mouseButtonMask) === 0) { onMouseUp(ev); return; }
-
     ev.preventDefault();
     const p = canvasXY(ev);
     const dx = p.x - lastX;
     const dy = p.y - lastY;
-
     if (!moved) {
       const ddx = (p.x - downX), ddy = (p.y - downY);
-      if (ddx*ddx + ddy*ddy > 64) moved = true; // 8px
+      if (ddx*ddx + ddy*ddy > 64) moved = true;
     }
-
     lastX = p.x; lastY = p.y;
-
     centerX -= dx * scaleF;
     centerY -= dy * scaleF;
-
     centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(-dx), scaleBF));
     centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(-dy), scaleBF));
-
     if (deepNavActive){
       centerX = bfToNumberApprox(centerXBF);
       centerY = bfToNumberApprox(centerYBF);
-      updateHUD("DeepNav active (log2>|"+DEEPNAV_TRIGGER_LOG2+"|)  Follow/HQ", 0, 0, 0, 0, 0);
+      updateHUD("DeepNav active", 0, 0, 0, 0, 0);
       requestDeepPanPreview("pan");
       return;
     }
@@ -667,19 +608,16 @@ function fixed2f(v, bits){
     isMouseDragging = false;
     mouseButtonMask = 0;
     window.removeEventListener("mousemove", onMouseMove, { passive:false });
-    // single click does nothing (CAD style)
   }
 
-canvas.addEventListener("wheel", (ev) => {
+  canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     hqOnUserInput();
     const {x:px, y:py} = canvasXY(ev);
-
     const base = 0.0068;
     const zspd0 = Math.max(0.01, Math.min(3.0, parseFloat(zoomSpeedEl?.value || "0.35")));
     const zspd = (ev.shiftKey ? (zspd0 * 0.25) : zspd0);
     let dyN = ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
-    // 一部デバイスでdeltaが極端に大きく出るので、ズームが跳ねないように抑制
     dyN = Math.sign(dyN) * Math.min(240, Math.abs(dyN));
     const speed = base * zspd;
     const factor = Math.exp(-dyN * speed);
@@ -687,38 +625,33 @@ canvas.addEventListener("wheel", (ev) => {
     const dxPix = (px - W*0.5);
     const dyPix = (py - H*0.5);
 
-    // --- BigFloat camera (robust at extreme depth) ---
     const scaleBeforeBF = scaleBF;
     const fBF = bfFromNumber(factor);
     const scaleAfterBF = bfMul(scaleBF, fBF);
-    const deltaScaleBF = bfAdd(scaleBeforeBF, {m:-scaleAfterBF.m, e:scaleAfterBF.e}); // before - after
+    const deltaScaleBF = bfAdd(scaleBeforeBF, {m:-scaleAfterBF.m, e:scaleAfterBF.e}); 
 
     centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(dxPix), deltaScaleBF));
     centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(dyPix), deltaScaleBF));
     scaleBF = scaleAfterBF;
 
-    // --- float camera (fast for normal depths) ---
     const beforeF = scaleF;
     scaleF = Math.min(10, scaleF * factor);
     centerX += dxPix * (beforeF - scaleF);
     centerY += dyPix * (beforeF - scaleF);
 
-    // Activate DeepNav when float stops meaningfully changing (subnormal/zero range).
     const absM = (scaleBF.m < 0n) ? -scaleBF.m : scaleBF.m;
     const mBits = absM === 0n ? 0 : absM.toString(2).length;
     const log2Scale = (mBits ? (mBits - 1) : -999999) + (scaleBF.e|0);
     deepNavActive = deepNavEnabled && (scaleF === 0 || !Number.isFinite(scaleF) || log2Scale < -1080);
 
     if (deepNavActive){
-      // keep UI in sync (approx; may show 0 for scaleF at extreme depths)
       centerX = bfToNumberApprox(centerXBF);
       centerY = bfToNumberApprox(centerYBF);
       scaleF  = bfToNumberApprox(scaleBF);
-      updateHUD("DeepNav active (log2>|"+DEEPNAV_TRIGGER_LOG2+"|)  Follow/HQ", 0, 0, 0, 0, 0);
+      updateHUD("DeepNav active", 0, 0, 0, 0, 0);
       scheduleFollowPreview("wheel");
       return;
     }
-
     schedule("zoom");
   }, { passive:false });
 
@@ -726,14 +659,12 @@ canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     hqOnUserInput();
     const p = canvasXY(ev);
-    // center to point
     const dxPix = (p.x - W*0.5);
     const dyPix = (p.y - H*0.5);
     centerX += dxPix * scaleF;
     centerY += dyPix * scaleF;
     centerXBF = bfAdd(centerXBF, bfMul(bfFromNumber(dxPix), scaleBF));
     centerYBF = bfAdd(centerYBF, bfMul(bfFromNumber(dyPix), scaleBF));
-    // zoom in a bit
     const factor = 0.5;
     scaleF *= factor;
     scaleBF = bfMul(scaleBF, bfFromNumber(factor));
@@ -756,8 +687,6 @@ canvas.addEventListener("wheel", (ev) => {
     if (ev.key === "Escape") { hqAbort(true); requestRender("esc", {preview:true}); return; }
     if (ev.key.toLowerCase() === "r") doReset();
     if (ev.key.toLowerCase() === "s") savePNG();
-    if (ev.key === "?" || ev.key.toLowerCase() === "h") {
-    }
   }, { passive:true });
 
   function doReset(){
@@ -797,17 +726,12 @@ canvas.addEventListener("wheel", (ev) => {
     }
   }
 
-  resetBtn?.addEventListener("click", doReset);
-  nukeBtn?.addEventListener("click", () => { location.href = "./reset.html"; });
-
-  saveBtn?.addEventListener("click", () => { savePNG(); });
   // restore DeepNav Always state
   try { deepAlways = (localStorage.getItem("deepAlways") ?? "1") === "1"; } catch(e) {}
   if (deepAlwaysEl) deepAlwaysEl.checked = deepAlways;
   deepAlwaysEl?.addEventListener("change", () => {
     deepAlways = !!deepAlwaysEl.checked;
     try { localStorage.setItem("deepAlways", deepAlways ? "1" : "0"); } catch(e) {}
-    // If always-on, force active immediately (but keep enabled respected)
     if (deepAlways && deepNavEnabled) deepNavActive = true;
     updateDeepBadge();
   });
@@ -815,21 +739,16 @@ canvas.addEventListener("wheel", (ev) => {
   deepBtn?.addEventListener("click", () => {
     deepNavEnabled = !deepNavEnabled;
     if (deepBtn) deepBtn.textContent = deepNavEnabled ? "DeepNav" : "DeepNav OFF";
-    updateHUD("toggle DeepNav (enabled)", 0, 0, 0, 0, 0);
+    updateHUD("toggle DeepNav", 0, 0, 0, 0, 0);
   });
 
-
   hqBtn?.addEventListener("click", () => {
-    // One-shot HQ render: no progressive passes (prevents "keeps changing" feeling).
     hqAbort(false);
     hqActive = true;
     hqClearTimers();
-
-    // remember interactive settings
     hqPrevRes = resEl ? parseFloat(resEl.value || "0.70") : 0.70;
     hqPrevStep = stepEl ? parseInt(stepEl.value || "2", 10) : 2;
 
-    // set HQ settings
     if (resEl) resEl.value = "1.00";
     if (stepEl) stepEl.value = "1";
     resize(true);
@@ -838,7 +757,6 @@ canvas.addEventListener("wheel", (ev) => {
       preview:false,
       forceRes: 1.0,
       forceStep: 1,
-      // restore interactive controls after render completes (image stays as-is until next input)
       onDone: () => {
         if (resEl) resEl.value = String(hqPrevRes ?? 0.70);
         if (stepEl) stepEl.value = String(hqPrevStep ?? 2);
@@ -857,15 +775,12 @@ canvas.addEventListener("wheel", (ev) => {
     const absM = (scaleBF.m < 0n) ? -scaleBF.m : scaleBF.m;
     const mBits = absM === 0n ? 0 : absM.toString(2).length;
     const log2Scale = (mBits ? (mBits - 1) : -999999) + (scaleBF.e|0);
-    const mag = initialScale / scaleF;
-    hud.textContent =
+    if (hud) {
+        hud.textContent =
 `center = (${centerX.toPrecision(16)}, ${centerY.toPrecision(16)})
-scale  = ${scaleF.toExponential(6)} (magnification ≈ ${mag.toExponential(3)}x)
 scaleBF= log2=${log2Scale}  e2=${scaleBF.e}  mBits~${mBits}
-DeepNav= ${deepNavEnabled ? "ON" : "OFF"}  active=${deepNavActive ? "ON" : "OFF"}
-mode   = ${modeEl?.value || "ultradeep"}   workers=${workerCount} (ok=${workerOK})
-iters  = ${iters}   bits=${bitsUsed}   step=${step}   internalRes=${internal}
 last   = ${ms|0} ms   ${reason||""}`;
+    }
     updateDeepBadge();
   }
 
@@ -879,7 +794,6 @@ last   = ${ms|0} ms   ${reason||""}`;
 
   function updateDeepBadge(){
     if (!deepBadge) return;
-    // enabled=DeepNav機能のON/OFF, active=現在BigFloat優先で動いているか
     const enabled = !!deepNavEnabled;
     const active = !!deepNavActive;
     deepBadge.classList.remove("on","off","standby");
@@ -893,12 +807,9 @@ last   = ${ms|0} ms   ${reason||""}`;
       deepBadge.classList.add("standby");
       deepBadge.textContent = "DEEPNAV STANDBY";
     }
-    // toast on transition to active
     if (active && !lastDeepActive) showToast("DEEPNAV ACTIVE");
     lastDeepActive = active;
   }
-
-
 
   function renderStandard(token, opts){
     const start = performance.now();
@@ -967,17 +878,13 @@ last   = ${ms|0} ms   ${reason||""}`;
     let internal = parseFloat(resEl?.value || "0.70");
     if (opts && Number.isFinite(opts.forceRes)) internal = Math.max(0.10, Math.min(1.0, opts.forceRes));
 
-    // preview bits cap for speed
     const bitsUsed = (preview ? Math.min(baseBits, 160) : baseBits) | 0;
     const sh = baseBits - bitsUsed;
 
-    // choose step
     const baseStep = parseInt(stepEl?.value || "2", 10);
     let step = ((opts && opts.hq) ? 1 : (preview ? Math.min(16, Math.max(6, baseStep*3)) : baseStep));
     if (opts && Number.isFinite(opts.forceStep)) step = Math.max(1, opts.forceStep|0);
 
-    // fixed-point mapping
-    // Use baseBits for center+scale mapping then downshift to bitsUsed to preserve location
     const centerXFix = bfToFixed(centerXBF, baseBits);
     const centerYFix = bfToFixed(centerYBF, baseBits);
     const scaleFix = bfToFixed(scaleBF, baseBits);
@@ -995,7 +902,6 @@ last   = ${ms|0} ms   ${reason||""}`;
     }
 
     if (!workerOK || workers.length === 0) {
-      // fallback
       renderStandard(token, opts);
       return;
     }
@@ -1012,14 +918,13 @@ last   = ${ms|0} ms   ${reason||""}`;
       const m = ev.data;
       if (!m || m.token !== token || m.type !== "strip") return;
       const data = new Uint8ClampedArray(m.buffer);
-      // 防御：キャッシュ混線/サイズ変更などで data 長が合わない場合は捨てる
       const rowsFromData = Math.floor(data.length / (W * 4));
       if (rowsFromData <= 0 || rowsFromData * W * 4 !== data.length) return;
       if (m.startY + rowsFromData > H) return;
 
       const img = new ImageData(data, W, rowsFromData);
       ctx.putImageData(img, 0, m.startY);
-done++;
+      done++;
       if (done >= jobs.length) {
         for (const w of workers) w.removeEventListener("message", onMsg);
         if (token !== renderToken) return;
@@ -1049,11 +954,9 @@ done++;
     }
   }
 
-  
   function scheduleFollowPreview(reason){
     if (!deepNavActive || !followEnabled) return;
     if (followTimer) clearTimeout(followTimer);
-    // デバウンスして、操作が落ち着いたら低負荷プレビューを1回だけ描画
     followTimer = setTimeout(() => {
       followTimer = null;
       requestRender("follow:" + (reason||""), {
@@ -1079,17 +982,14 @@ done++;
     });
   }
 
-
-function requestRender(reason="", opts={}){
+  function requestRender(reason="", opts={}){
     resize(false);
     const token = ++renderToken;
     try{
       if ((modeEl?.value || "ultradeep") === "standard") {
         renderStandard(token, opts);
       } else {
-        // autoBits: keep image stable at deep zoom
         if (autoBitsEl?.checked) {
-          // heuristic: bits ~ 120 + log2(magnification)*24 (clamped)
           const mag = Math.max(1, initialScale / scaleF);
           const need = Math.floor(120 + Math.log2(mag) * 24);
           const clamped = Math.max(96, Math.min(8192, need));
@@ -1111,40 +1011,19 @@ function requestRender(reason="", opts={}){
   autoBitsEl?.addEventListener("change", () => requestRender("autoBits", {preview:false}));
   autoSettleEl?.addEventListener("change", () => requestRender("autoSettle", {preview:false}));
 
-  // First render
   resize(true);
   requestRender("boot", {preview:false});
 })();
-function updateZoomSpeedLabel(){ /* noop */ }
 
-// --- MDE Force Update Guard (v9.6.20) ---
-// If an old Service Worker / cache keeps serving stale app.js, this clears it once per version.
-(async function mdeForceUpdateOnce(){
-  try {
-    const KEY = "mde_version_seen";
-    const seen = localStorage.getItem(KEY);
-    if (seen === "9.6.20") return;
-    localStorage.setItem(KEY, "9.6.20");
-
-    // Unregister all SWs
-    if ("serviceWorker" in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister().catch(()=>null)));
-    }
-
-    // Clear caches (best effort)
-    if (window.caches && caches.keys) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k).catch(()=>null)));
-    }
-
-    // Hard reload with cache-buster (prevents browsers from reusing cached script URLs)
-    const u = new URL(location.href);
-    u.searchParams.set("v", "9.6.20");
-    u.searchParams.set("fresh", String(Date.now()));
-    location.replace(u.toString());
-  } catch(e) {
-    // ignore
-  }
-})();
-
+// --- PWA Service Worker Registration ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+                console.log('Service Worker registered with scope:', registration.scope);
+            })
+            .catch(error => {
+                console.error('Service Worker registration failed:', error);
+            });
+    });
+}

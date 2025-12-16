@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0f" />
   <title>Mandelbrot Explorer v9.6.10 Kids UI</title>
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
   <link rel="icon" href="favicon.ico" />
   <style>
     html,body{margin:0;height:100%;background:#0b0b0f;overflow:hidden}
-    canvas{touch-action:none;display:block;width:100vw;height:100vh;touch-action:none}
-    .hud{
+    canvas{touch-action:none;display:block;width:100vw;height:100vh}
+    
+    .hud {
       position:fixed;left:12px;top:12px;z-index:20;
       padding:10px 12px;border-radius:12px;
       background:rgba(0,0,0,.45);color:rgba(255,255,255,.88);
@@ -20,7 +21,7 @@
       backdrop-filter: blur(10px);
       max-width:min(680px,calc(100vw - 24px));
     }
-    .panel{
+    .panel {
       position:fixed;right:12px;top:12px;z-index:30;
       width:min(430px,calc(100vw - 24px));
       padding:10px 12px;border-radius:14px;
@@ -52,24 +53,30 @@
       font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
       max-height:40vh;overflow:auto;
     }
-  
+    
+    .helpOverlay {
       position:fixed; inset:0; display:none; z-index:9999;
       background:rgba(0,0,0,0.70);
       backdrop-filter: blur(3px);
+      align-items: center;
+      justify-content: center;
     }
-      position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    .helpOverlay.show { display: flex; }
+    
+    .helpCard {
+      position:relative; 
       width:min(720px, calc(100vw - 24px));
       background:#111; color:#eee; border:1px solid #333;
       border-radius:14px; padding:18px 18px 14px;
       box-shadow: 0 18px 60px rgba(0,0,0,0.55);
     }
+    .card {
       background:#151515; border:1px solid #2a2a2a; border-radius:12px;
-      padding:10px 12px; line-height:1.35;
+      padding:10px 12px; line-height:1.35; margin-bottom: 8px;
     }
+    .k {
       border:1px solid #3a3a3a; background:#1b1b1b; color:#eee;
-      border-radius:10px; padding:8px 12px; cursor:pointer;
-    }
-    @media (max-width: 640px){
+      border-radius:10px; padding:2px 6px; margin-right: 6px; font-weight: bold;
     }
 
     #deepBadge{
@@ -105,442 +112,186 @@
     }
     #toast.show{ opacity: 1; }
 
-    .chk{display:flex;align-items:center;gap:8px;font-size:12px;color:#bbb;margin-left:10px;user-select:none}
-    .chk input{transform:translateY(1px)}
-
-    .kidsTop{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
-    .kidsTitle{font:700 14px/1.2 system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",sans-serif;letter-spacing:.02em;color:#fff}
-    .kidsSub{font:12px/1.3 system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",sans-serif;color:#cfcfcf}
-    .bigBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .bigBtns button{padding:12px 10px;border-radius:14px;font-size:13px;font-weight:700}
-    .bigBtns button.primary{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08)}
-    .bigBtns button.alt{border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.25)}
-    details.advanced{margin-top:10px;border-top:1px solid rgba(255,255,255,.10);padding-top:8px}
-    details.advanced summary{cursor:pointer;user-select:none;color:#ddd;font-weight:700;list-style:none}
-    details.advanced summary::-webkit-details-marker{display:none}
-    details.advanced summary:before{content:"▶";display:inline-block;margin-right:6px;opacity:.8;transform:translateY(-1px)}
-    details.advanced[open] summary:before{content:"▼"}
-    .hint{opacity:.85}
-
-    canvas{touch-action:none}
-    html,body{overscroll-behavior:none}
-
     .pill{padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);
       background:rgba(255,255,255,.06);color:#fff;font-weight:700;cursor:pointer}
     .pill:active{transform:translateY(1px)}
     .tiny{font-size:12px;opacity:.75}
+    
+    .hidden { display: none !important; }
 
-    /* --- Mobile compact UI --- */
-    .kidsHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-    .kidsHeaderText{min-width:0}
-    .uiToggleBtn{
-      flex:0 0 auto;
-      width:38px;height:38px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.16);
-      background:rgba(255,255,255,.06);
-      color:#fff;font-size:18px;font-weight:900;
-      cursor:pointer;
+    /* MOBILE_FAB */
+    #mobileFab{
+      position:fixed;
+      left:12px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      display:none;
+      gap:10px;
+      z-index:2147483600;
     }
-    .uiToggleBtn:active{transform:translateY(1px)}
-    .zoomBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-    .zoomBtns button{padding:12px 10px;border-radius:14px;font-size:16px;font-weight:900}
-    .zoomBtns button.alt{border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.25)}
-    .panel.compact .kidsSub{display:none}
-    .panel.compact details.advanced{display:none}
-    .panel.compact .row{display:none}
-    .panel.compact .zoomBtns{display:grid}
-    .panel.compact .bigBtns button{padding:10px 10px;font-size:12px}
-    .panel.compact{padding:10px 10px;border-radius:16px}
+    #mobileFab .fab{
+      width:48px; height:48px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(0,0,0,.55);
+      color:#fff;
+      font:800 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    #mobileFab .fab:active{ transform: translateY(1px); }
+
     @media (max-width: 520px){
-      .panel{right:8px;left:8px;top:8px;width:auto;padding:10px 10px;border-radius:16px}
-      .kidsTitle{font-size:13px}
-      .bigBtns{gap:6px}
-      .bigBtns button{padding:10px 8px;font-size:12px;border-radius:14px}
-      .zoomBtns{gap:6px}
-      .zoomBtns button{padding:10px 8px;font-size:15px;border-radius:14px}
+      #mobileFab{ display:flex; }
     }
 
-  
-/* MOBILE_COMPACT_V960 */
-#mobileFab{
-  position:fixed;
-  left:12px;
-  bottom: calc(12px + env(safe-area-inset-bottom));
-  display:none;
-  gap:10px;
-  z-index:2147483600;
-}
-#mobileFab .fab{
-  width:48px; height:48px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,.18);
-  background:rgba(0,0,0,.55);
-  color:#fff;
-  font:800 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-#mobileFab .fab:active{ transform: translateY(1px); }
-
-@media (max-width: 520px){
-  #mobileFab{ display:flex; }
-
-    right:10px; bottom: calc(12px + env(safe-area-inset-bottom));
-    font-size:11px; padding:6px 9px;
-    border-radius:999px;
-  }
-
-  #uiPanel{
-    position:fixed;
-    left:10px; right:10px;
-    top:10px;
-    z-index:2147483500;
-    max-height: 30vh;
-    overflow:auto;
-    padding:10px;
-    border-radius:18px;
-  }
-  #uiPanel h1{ font-size:18px; margin:0 0 6px 0; }
-  #uiPanel button{ min-height:44px; font-size:15px; }
-  #uiPanel .grid2{ gap:10px; }
-  #uiPanel .tiny, #uiPanel .helptext{ font-size:12px; }
-
-  #uiPanel.collapsed_removed{
-    max-height: 64px;
-    overflow:hidden;
-    padding-bottom:8px;
-  }
-  #uiPanel.collapsed_removed .grid2,
-  #uiPanel.collapsed_removed .row,
-  #uiPanel.collapsed_removed details{
-    display:none !important;
-  }
-  #uiPanel .collapseBar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    margin-top:6px;
-  }
-    /* Robust collapse: hide everything except title + bar */
-  #uiPanel.collapsed_removed > *{ display:none !important; }
-  #uiPanel.collapsed_removed h1{ display:block !important; }
-  #uiPanel.collapsed_removed .collapseBar{ display:flex !important; }
-
-  #uiPanel .collapseBtn{
-    padding:8px 12px;
-    min-height:40px;
-    border-radius:999px;
-    border:1px solid rgba(255,255,255,.18);
-    background:rgba(255,255,255,.06);
-    color:#fff;
-    font-weight:800;
-  }
-}
-
-/* MOBILE_PANEL_TOGGLE_V961 */
-#fabPanel{
-  position:fixed;
-  right:12px;
-  bottom: calc(12px + env(safe-area-inset-bottom));
-  width:48px; height:48px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,.18);
-  background:rgba(0,0,0,.55);
-  color:#fff;
-  font:900 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
-  z-index:2147483647;
-  display:none;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-#fabPanel:active{ transform: translateY(1px); }
-
-#uiPanel.hidden{ display:none !important; }
-#uiPanel{ position:fixed; }
-
-@media (max-width: 520px){
-  #fabPanel{ display:block; }
-  /* on phone: panel should not take entire screen; keep scroll */
-  #uiPanel{
-    left:10px; right:10px; top:10px;
-    max-height: 60vh;
-    overflow:auto;
-  }
-  #panelClose{
-    position:absolute;
-    right:10px; top:10px;
-    width:40px; height:40px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,.18);
-    background:rgba(0,0,0,.35);
-    color:#fff;
-    font-size:22px;
-    line-height:40px;
-    font-weight:900;
-  }
-}
-
-/* PANEL_SHOWHIDE_V962 */
-#uiPanel.hidden{ display:none !important; }
-#fabPanel{
-  position:fixed;
-  right:12px;
-  bottom: calc(12px + env(safe-area-inset-bottom));
-  width:48px; height:48px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,.18);
-  background:rgba(0,0,0,.55);
-  color:#fff;
-  font:900 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
-  z-index:2147483601;
-  display:block;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-#fabPanel:active{ transform: translateY(1px); }
-
-@media (max-width: 520px){
-  /* phone: start hidden, show via ? */
-  #uiPanel{ max-height: 60vh; overflow:auto; }
-}
-
-/* v9.6.11 UI cleanup */
-.panel {
-  background: rgba(16,16,16,0.78) !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-}
-.helpMini {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255,255,255,0.10);
-  font-size: 12px;
-  line-height: 1.35;
-  opacity: 0.92;
-}
-.helpMini .helpTitle {
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-.helpMini .helpLine {
-  opacity: 0.9;
-}
-@media (max-width: 700px) {
-  .panel {
-    max-height: 44vh;
-    overflow: auto;
-  }
-  .sub {
-    font-size: 12px;
-    line-height: 1.25;
-  }
-}
-
-
-/* v9.6.12 no-duplicate help */
-@media (max-width: 700px) {
-  .panel {
-    max-height: 36vh;
-  }
-  .btnGrid button {
-    padding: 10px 12px;
-    font-size: 15px;
-  }
-}
-
-
-/* v9.6.15 help-on-demand only */
-.helpOverlay {
-  position: fixed;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 14px;
-  background: rgba(0,0,0,0.55);
-  z-index: 9999;
-}
-.helpOverlay.show { display: flex; }
-.helpCard {
-  position: relative;
-  width: min(560px, 100%);
-  background: rgba(16,16,16,0.92);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 16px;
-  padding: 16px 16px 14px;
-  box-shadow: 0 14px 40px rgba(0,0,0,0.45);
-  color: rgba(255,255,255,0.92);
-}
-.helpTitle {
-  font-weight: 800;
-  font-size: 16px;
-  margin-bottom: 10px;
-}
-.helpBody {
-  font-size: 13px;
-  line-height: 1.45;
-}
-.helpSection { margin: 8px 0; }
-.helpClose {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.35);
-  color: rgba(255,255,255,0.92);
-}
-/* Keep the ? button always reachable */
-#helpBtn {
-  touch-action: manipulation;
-}
-
-</style>
+    #fabPanel{
+      position:fixed;
+      right:12px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      width:48px; height:48px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(0,0,0,.55);
+      color:#fff;
+      font:900 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+      z-index:2147483601;
+      display:none;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    #fabPanel:active{ transform: translateY(1px); }
+    @media (max-width: 520px){
+      #fabPanel{ display:block; }
+    }
+  </style>
 </head>
 <body>
 
-  <canvas id="c"></canvas>
-</div>
+<canvas id="c"></canvas>
+<div id="hud" class="hud"></div>
+<div id="deepBadge" class="off">DEEPNAV OFF</div>
+<div id="toast"></div>
 
+<div id="uiPanel" class="panel">
+  <div class="kidsTop">
+    <div class="kidsTitle">Mandelbrot Explorer</div>
+    <div class="kidsSub">UltraDeep v9.6.10</div>
+  </div>
   
-  <div><span class="k">ドラッグ</span>移動（パン）</div></div>
-        <div class="card"><div><span class="k">クリック</span>中心合わせ</div><div><span class="k">ダブルクリック</span>中心合わせ＋ズームイン</div></div>
-        <div class="card"><div><span class="k">きれいに描く</span>止め絵を高精細で仕上げ</div><div><span class="k">Save PNG / S</span>画像として保存</div></div>
-        <div class="card"><div><span class="k">超深度</span>超深度允许（ONなら深い領域で自動的にDeepNavに移行。HUDのactiveがONになります）</div><div><span class="k">Reset / R</span>初期位置へ</div></div>
-      </div>
-
-    <div class="row">
-      <label>スマホモード</label>
-      <div class="ctrl">
-        <button id="mobileModeBtn" class="pill" title="スマホ向け軽量設定">OFF</button>
-        <span class="tiny">（軽く動く）</span>
-      </div>
+  <div class="row">
+    <label>スマホモード</label>
+    <div class="ctrl">
+      <button id="mobileModeBtn" class="pill" title="スマホ向け軽量設定">OFF</button>
+      <span class="tiny">（軽く動く）</span>
     </div>
-    <div class="row">
-      <label>ズーム</label>
-      <div class="ctrl">
-        <button id="zoomOutBtn" class="pill" title="ズームアウト">−</button>
-        <button id="zoomInBtn" class="pill" title="ズームイン">＋</button>
-        <span class="tiny">（指はドラッグ移動）</span>
-      </div>
+  </div>
+  
+  <div class="row">
+    <label>操作</label>
+    <div class="ctrl">
+       <button id="resetBtn" class="pill">Reset</button>
+       <button id="hqBtn" class="pill">HQ</button>
+       <button id="saveBtn" class="pill">Save</button>
     </div>
-</div>
   </div>
 
+  <div class="row">
+    <label>ズーム</label>
+    <div class="ctrl">
+      <button id="zoomOutBtn" class="pill" title="ズームアウト">−</button>
+      <button id="zoomInBtn" class="pill" title="ズームイン">＋</button>
+      <span class="tiny">（指はドラッグ移動）</span>
+    </div>
+  </div>
+
+  <div class="row">
+     <label>DeepNav</label>
+     <div class="ctrl">
+       <button id="deepBtn" class="pill">DeepNav</button>
+       <label class="chk"><input type="checkbox" id="deepAlways">常時ON</label>
+     </div>
+  </div>
+
+  <details class="advanced">
+    <summary>詳細設定</summary>
+    <div class="row"><label>Res</label><input id="res" type="number" step="0.05" value="0.70"></div>
+    <div class="row"><label>Step</label><input id="step" type="number" value="2"></div>
+    <div class="row"><label>Iter</label><input id="iterCap" type="number" value="1400"></div>
+    <div class="row"><label>Bits</label><input id="bits" type="number" value="512"></div>
+    <div class="row"><label>AutoBits</label><input type="checkbox" id="autoBits" checked></div>
+    <div class="row"><label>Preview</label><input type="checkbox" id="preview" checked></div>
+    <div class="row"><label>AutoSettle</label><input type="checkbox" id="autoSettle" checked></div>
+  </details>
+  
+  <button id="panelCloseEl" class="pill" style="margin-top:10px;width:100%">閉じる</button>
+</div>
+
 <div id="errBox"></div>
-
-  <!-- Bootloader: app.js が落ちてもエラーを画面に出す -->
-  <script>
-    (function(){
-      const errBox = document.getElementById('errBox');
-      function showErr(t){
-        errBox.style.display='block';
-        errBox.textContent = t;
-      }
-      window.addEventListener('error', (e)=> showErr('[window.error]\n'+e.message+'\n'+e.filename+':'+e.lineno+':'+e.colno));
-      window.addEventListener('unhandledrejection', (e)=> showErr('[unhandledrejection]\n'+((e.reason&& (e.reason.stack||e.reason.message))||e.reason)));
-
-      const build = '20251214_v7_' + Date.now().toString(36);
-      const s = document.createElement('script');
-      s.src = './app.js?v=' + build; // cache bust
-      s.defer = true;
-      s.onerror = ()=>showErr('[load error]\napp.js failed to load');
-      document.head.appendChild(s);
-    })();
-  </script>
 
 <div id="mobileFab" aria-hidden="false">
   <button id="fabZoomOut" class="fab" title="ズームアウト">−</button>
   <button id="fabZoomIn" class="fab" title="ズームイン">＋</button>
 </div>
 
-<button id="fabPanel" title="操作パネル" aria-label="操作パネル" id="helpBtn">？</button>
-
-<script>
-/* PANEL_TOGGLE_INLINE_V968: works even if app.js is cached or throws */
-(function(){
-  function setPanelVisible(on){
-    var p = document.getElementById('uiPanel');
-    if(!p) return;
-    p.classList.toggle('hidden', !on);
-  }
-  function togglePanel(){
-    var p = document.getElementById('uiPanel');
-    if(!p) return;
-    setPanelVisible(p.classList.contains('hidden'));
-  }
-  window.__togglePanel = togglePanel;
-
-  function bind(){
-    var fab = document.getElementById('fabPanel');
-    var closeBtn = document.getElementById('panelClose');
-    if(fab){
-      fab.onclick = function(ev){ ev && ev.preventDefault && ev.preventDefault(); togglePanel(); };
-      fab.addEventListener('touchend', function(ev){ ev.preventDefault(); togglePanel(); }, {passive:false});
-      fab.style.pointerEvents = 'auto';
-    }
-    if(closeBtn){
-      closeBtn.onclick = function(ev){ ev && ev.preventDefault && ev.preventDefault(); setPanelVisible(false); };
-      closeBtn.addEventListener('touchend', function(ev){ ev.preventDefault(); setPanelVisible(false); }, {passive:false});
-    }
-    // mobile: start hidden
-    try{
-      if (window.matchMedia && matchMedia('(max-width: 520px)').matches) setPanelVisible(false);
-    }catch(e){}
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', bind, {once:true});
-  }else{
-    bind();
-  }
-  window.addEventListener('pageshow', function(){ try{ bind(); }catch(e){} }, {passive:true});
-})();
-</script>
-
+<button id="fabPanel" title="操作パネル" aria-label="操作パネル">？</button>
 
 <div id="helpOverlay" class="helpOverlay" aria-hidden="true">
   <div class="helpCard" role="dialog" aria-modal="true" aria-label="つかいかた">
-    <button id="helpClose" class="helpClose" aria-label="閉じる">×</button>
-    <div class="helpTitle">つかいかた</div>
+    <button id="helpClose" class="helpClose" aria-label="閉じる" style="position:absolute;right:10px;top:10px;padding:8px;">×</button>
+    <div class="helpTitle" style="font-size:18px;font-weight:bold;margin-bottom:12px">つかいかた</div>
     <div class="helpBody">
-      <div class="helpSection"><b>スマホ</b>：＋／−でズーム／1本指ドラッグで移動／ダブルタップで中心</div>
-      <div class="helpSection"><b>PC</b>：ホイールでズーム（カーソル位置）／左ドラッグ or ホイール押し込みで移動／ダブルクリックで中心</div>
-      <div class="helpSection">「きれいに描く」は高精細レンダリングです。重いので少し待ってください。</div>
+      <div class="card"><div><span class="k">ドラッグ</span>移動（パン）</div></div>
+      <div class="card"><div><span class="k">クリック</span>中心合わせ</div><div><span class="k">ダブルクリック</span>中心合わせ＋ズームイン</div></div>
+      <div class="card"><div><span class="k">きれいに描く</span>止め絵を高精細で仕上げ</div><div><span class="k">Save PNG / S</span>画像として保存</div></div>
+      <div class="card"><div><span class="k">超深度</span>超深度対応（ONなら深い領域で自動的にDeepNavに移行）</div><div><span class="k">Reset / R</span>初期位置へ</div></div>
+      <div style="margin-top:10px;font-size:12px;opacity:0.8">
+        <b>スマホ</b>：＋／−でズーム／1本指ドラッグで移動<br>
+        <b>PC</b>：ホイールでズーム／左ドラッグで移動
+      </div>
     </div>
   </div>
 </div>
 
-
 <script>
-(() => {
-  const btn = document.getElementById('helpBtn');
-  const ov = document.getElementById('helpOverlay');
-  const close = document.getElementById('helpClose');
-  if (!btn || !ov) return;
-  const hide = () => { ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); };
-  const show = () => { ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); };
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-    show();
-  }, true);
-  if (close) close.addEventListener('click', (e) => {
-    e.preventDefault(); e.stopPropagation();
-    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-    hide();
-  }, true);
-  ov.addEventListener('click', (e) => {
-    if (e.target === ov) hide();
-  });
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') hide();
-  });
-})();
+  // Error handling bootloader
+  (function(){
+    const errBox = document.getElementById('errBox');
+    function showErr(t){
+      if(errBox) {
+          errBox.style.display='block';
+          errBox.textContent = t;
+      }
+    }
+    window.addEventListener('error', (e)=> showErr('[window.error]\n'+e.message));
+    window.addEventListener('unhandledrejection', (e)=> showErr('[unhandledrejection]\n'+e.reason));
+
+    const build = '20251214_v7_' + Date.now().toString(36);
+    const s = document.createElement('script');
+    s.src = './app.js?v=' + build; 
+    s.defer = true;
+    document.head.appendChild(s);
+  })();
+
+  // Help Overlay Logic
+  (() => {
+    const btn = document.getElementById('fabPanel'); // "?" button opens help
+    const ov = document.getElementById('helpOverlay');
+    const close = document.getElementById('helpClose');
+    if (!btn || !ov) return;
+    const hide = () => { ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); };
+    const show = () => { ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); };
+    btn.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      show();
+    });
+    if (close) close.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      hide();
+    });
+    ov.addEventListener('click', (e) => {
+      if (e.target === ov) hide();
+    });
+  })();
 </script>
 
 </body>
