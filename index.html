@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0f" />
-  <title>Mandelbrot Explorer v9.4.8 Kids UI</title>
+  <title>Mandelbrot Explorer v9.5.1 Kids UI</title>
   <link rel="icon" href="./favicon.ico" />
   <style>
     html,body{margin:0;height:100%;background:#0b0b0f;overflow:hidden}
@@ -134,9 +134,23 @@
 
     canvas{touch-action:none}
     html,body{overscroll-behavior:none}
+
+    #verFixed{
+      position:fixed; right:10px; bottom:10px; z-index:2147483647;
+      padding:8px 10px; border-radius:12px;
+      background: rgba(0,0,0,0.65);
+      border:1px solid rgba(255,255,255,0.18);
+      color:#fff;
+      font:700 12px/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      letter-spacing:.02em;
+      pointer-events:none;
+      user-select:none;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+    }
 </style>
 </head>
 <body>
+<div id="verFixed"></div>
   <canvas id="c"></canvas>
   <div id="hud" class="hud">Loading…</div>
 
@@ -144,8 +158,8 @@
 
     <div class="kidsTop">
       <div>
-        <div class="kidsTitle">マンデルブロ探検 <span id="verTag" style="font-weight:700;color:#9fd;">v9.4.8</span></div>
-        <div class="kidsSub">ホイールでズーム（CAD式） / 左クリック/ホイール押し込みでドラッグ / きれいに描く→画像保存</div>
+        <div class="kidsTitle">マンデルブロ探検</div>
+        <div class="kidsSub">ホイールでズーム（Shiftでゆっくり）（CAD式） / 左クリック/ホイール押し込みでドラッグ / きれいに描く→画像保存</div>
       </div>
       <div class="bigBtns">
         <button id="hqBtn" class="primary" title="段階的に高精細化（重い）">きれいに描く</button>
@@ -157,12 +171,7 @@
         <label>ズームの速さ <span id="zoomSpeedVal" style="color:#bbb;font-size:12px;margin-left:6px;">0.65×</span></label>
         <input id="zoomSpeed" type="range" min="0.05" max="2.50" step="0.01" value="0.65" />
       </div>
-<div class="row">
-        <label>超深度</label>
-        <button id="deepBtn" class="alt" title="超深度モード（深く潜る）">超深度</button>
-        <label class="chk" title="深度に関係なく超深度を常にACTIVEにします（潜航優先）"><input id="deepAlways" type="checkbox" checked>超深度 いつもON</label>
-      </div>
-    </div>
+</div>
         <details class="advanced"><summary>くわしく</summary>
 <div class="row">
       <label>モード</label>
@@ -258,5 +267,15 @@
       document.head.appendChild(s);
     })();
   </script>
+
+<script>
+(() => {
+  const el = document.getElementById('verFixed');
+  if (!el) return;
+  const qs = new URLSearchParams(location.search);
+  const v = qs.get('v') || '9.5.1';
+  el.textContent = `v${v}  build:2025-12-16T08:30:44Z`;
+})();
+</script>
 </body>
 </html>

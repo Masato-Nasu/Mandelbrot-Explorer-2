@@ -88,6 +88,7 @@
   const $ = (id) => document.getElementById(id);
 
   const canvas = $("c");
+  if (canvas) canvas.style.touchAction = "none";
   const hud = $("hud");
   const errBox = $("errBox");
 
@@ -101,7 +102,7 @@
   const autoSettleEl = $("autoSettle");
   const hqBtn = $("hqBtn");
   const saveBtn = $("saveBtn");
-  const deepBtn = $("deepBtn");
+  const deepBtn = $("deepBtn"); // may be missing in simplified UI
   const deepAlwaysEl = $("deepAlways");
   const deepBadge = document.getElementById("deepBadge");
   const toastEl = document.getElementById("toast");
@@ -109,6 +110,25 @@
   const zoomSpeedEl = $("zoomSpeed");
   const zoomSpeedValEl = $("zoomSpeedVal");
 const resetBtn = $("resetBtn");
+
+  function goHome(){
+    resize(false);
+    // Standard Mandelbrot home view
+    centerXBF = bfFromNumber(-0.5);
+    centerYBF = bfFromNumber(0.0);
+    if (!initialScale) initialScale = 3.5 / (W || 1200);
+    scaleBF   = bfFromNumber(initialScale);
+    // Keep float in sync (for UI heuristics)
+    centerX = -0.5;
+    centerY =  0.0;
+    scaleF  = initialScale;
+
+    // Stop any in-flight HQ/follow timers
+    try{ if (followTimer) { clearTimeout(followTimer); followTimer=null; } }catch(e){}
+    requestRender("home", {preview:true});
+  }
+
+  resetBtn?.addEventListener("click", (ev) => { ev.preventDefault(); goHome(); });
   const nukeBtn = $("nukeBtn");
   const helpBtn = $("helpBtn");
   const helpOverlay = document.getElementById("helpOverlay");
@@ -167,10 +187,10 @@ const resetBtn = $("resetBtn");
   // DeepNav turns 'active' when float64 precision becomes useless.
   // Trigger earlier than underflow so you can keep exploring smoothly.
   const DEEPNAV_TRIGGER_LOG2 = 80; // smaller => earlier (recommended 60-120)
-  let deepNavEnabled = true;
+  let deepNavEnabled = false; // disabled (simplified UI)
   let deepNavActive = false;
     if (deepAlways && deepNavEnabled) deepNavActive = true;
-  var deepAlways = true; // force DeepNav active at all depths
+  var deepAlways = false; // disabled (simplified UI)
   var lastDeepActive = false;
   let followEnabled = true;
   let followTimer = null;
@@ -492,7 +512,8 @@ canvas.addEventListener("wheel", (ev) => {
     const {x:px, y:py} = canvasXY(ev);
 
     const base = 0.0068;
-    const zspd = Math.max(0.01, Math.min(3.0, parseFloat(zoomSpeedEl?.value || "0.35")));
+    const zspd0 = Math.max(0.01, Math.min(3.0, parseFloat(zoomSpeedEl?.value || "0.35")));
+    const zspd = (ev.shiftKey ? (zspd0 * 0.25) : zspd0);
     let dyN = ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
     // 一部デバイスでdeltaが極端に大きく出るので、ズームが跳ねないように抑制
     dyN = Math.sign(dyN) * Math.min(240, Math.abs(dyN));
@@ -558,6 +579,8 @@ canvas.addEventListener("wheel", (ev) => {
   }, { passive:false });
 
   window.addEventListener("keydown", (ev) => {
+    if (ev.key === "h" || ev.key === "H") { ev.preventDefault(); goHome(); return; }
+
     if (ev.key && ev.key.toLowerCase() === "a") {
       deepAlways = !deepAlways;
       try { localStorage.setItem("deepAlways", deepAlways ? "1" : "0"); } catch(e) {}

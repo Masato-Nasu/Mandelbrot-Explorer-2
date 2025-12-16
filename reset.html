@@ -33,8 +33,7 @@
     await Promise.all(keys.map(k => caches.delete(k)));
   } catch(e) {}
   try { localStorage.clear(); sessionStorage.clear(); } catch(e) {}
-  // Force reload with a version query so app.js/worker.js are not taken from cache
-  location.replace("./?v=9.4.8");
+  location.replace("./?v=9.5.1");
 })();
 </script>
 </body>
