@@ -1109,3 +1109,35 @@ function requestRender(reason="", opts={}){
   requestRender("boot", {preview:false});
 })();
 function updateZoomSpeedLabel(){ /* noop */ }
+
+// --- MDE Force Update Guard (v9.6.20) ---
+// If an old Service Worker / cache keeps serving stale app.js, this clears it once per version.
+(async function mdeForceUpdateOnce(){
+  try {
+    const KEY = "mde_version_seen";
+    const seen = localStorage.getItem(KEY);
+    if (seen === "9.6.20") return;
+    localStorage.setItem(KEY, "9.6.20");
+
+    // Unregister all SWs
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister().catch(()=>null)));
+    }
+
+    // Clear caches (best effort)
+    if (window.caches && caches.keys) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k).catch(()=>null)));
+    }
+
+    // Hard reload with cache-buster (prevents browsers from reusing cached script URLs)
+    const u = new URL(location.href);
+    u.searchParams.set("v", "9.6.20");
+    u.searchParams.set("fresh", String(Date.now()));
+    location.replace(u.toString());
+  } catch(e) {
+    // ignore
+  }
+})();
+
