@@ -1,5 +1,90 @@
 // Mandelbrot Explorer UltraDeep v7 (stable rewrite)
 (() => {
+// ---- BigFloat (DeepNav) : value = m * 2^e (BigInt mantissa, integer exponent) ----
+  function bfNorm(b){
+    let m = b.m, e = b.e|0;
+    if (m === 0n) return {m:0n, e:0};
+    const abs = (m < 0n) ? -m : m;
+    const bits = abs.toString(2).length;
+    const target = 240; // keep mantissa around this size for speed
+    if (bits > target){
+      const sh = bits - target;
+      const half = 1n << BigInt(sh-1);
+      m = (m + (m>=0n?half:-half)) >> BigInt(sh);
+      e += sh;
+    }
+    return {m, e};
+  }
+
+  function bfFromNumber(n){
+    if (!Number.isFinite(n)) throw new RangeError("bfFromNumber non-finite");
+    if (n === 0) return {m:0n, e:0};
+    const buf = new ArrayBuffer(8);
+    const dv = new DataView(buf);
+    dv.setFloat64(0, n, false);
+    const hi = dv.getUint32(0, false);
+    const lo = dv.getUint32(4, false);
+    const sign = (hi>>>31) ? -1n : 1n;
+    const exp = (hi>>>20) & 0x7ff;
+    const fracHi = hi & 0xFFFFF;
+
+    let mant = (BigInt(fracHi) << 32n) | BigInt(lo);
+    let e2;
+    if (exp === 0){
+      e2 = -1074; // subnormal
+    } else {
+      mant = (1n<<52n) | mant;
+      e2 = exp - 1023 - 52;
+    }
+    return bfNorm({m: sign*mant, e: e2});
+  }
+
+  function bfAdd(a,b){
+    if (a.m===0n) return b;
+    if (b.m===0n) return a;
+    let am=a.m, ae=a.e|0, bm=b.m, be=b.e|0;
+    if (ae > be){
+      const sh = ae - be;
+      if (sh > 4000) return a;
+      bm = bm >> BigInt(sh);
+      return bfNorm({m: am + bm, e: ae});
+    } else if (be > ae){
+      const sh = be - ae;
+      if (sh > 4000) return b;
+      am = am >> BigInt(sh);
+      return bfNorm({m: am + bm, e: be});
+    } else {
+      return bfNorm({m: am + bm, e: ae});
+    }
+  }
+
+  function bfMul(a,b){
+    if (a.m===0n || b.m===0n) return {m:0n,e:0};
+    return bfNorm({m: a.m*b.m, e: (a.e|0)+(b.e|0)});
+  }
+
+  function bfToFixed(a, bits){
+    bits = bits|0;
+    if (a.m===0n) return 0n;
+    const sh = (a.e|0) + bits;
+    if (sh >= 0) return a.m << BigInt(sh);
+    const rsh = BigInt(-sh);
+    const half = 1n << (rsh-1n);
+    return (a.m + (a.m>=0n?half:-half)) >> rsh;
+  }
+
+  function bfToNumberApprox(a){
+    if (a.m===0n) return 0.0;
+    const m = a.m;
+    const e = a.e|0;
+    const abs = (m<0n)?-m:m;
+    const bl = abs.toString(2).length;
+    const take = Math.min(53, bl);
+    const sh = bl - take;
+    const top = (sh>0) ? (m >> BigInt(sh)) : m;
+    return Number(top) * Math.pow(2, e + sh);
+  }
+
   const $ = (id) => document.getElementById(id);
 
   const canvas = $("c");
@@ -101,91 +186,7 @@ function fixed2f(v, bits){
       bits = 1023;
     }
 
-  // ---- BigFloat (DeepNav) : value = m * 2^e (BigInt mantissa, integer exponent) ----
-  function bfNorm(b){
-    let m = b.m, e = b.e|0;
-    if (m === 0n) return {m:0n, e:0};
-    const abs = (m < 0n) ? -m : m;
-    const bits = abs.toString(2).length;
-    const target = 240; // keep mantissa around this size for speed
-    if (bits > target){
-      const sh = bits - target;
-      const half = 1n << BigInt(sh-1);
-      m = (m + (m>=0n?half:-half)) >> BigInt(sh);
-      e += sh;
-    }
-    return {m, e};
-  }
-
-  function bfFromNumber(n){
-    if (!Number.isFinite(n)) throw new RangeError("bfFromNumber non-finite");
-    if (n === 0) return {m:0n, e:0};
-    const buf = new ArrayBuffer(8);
-    const dv = new DataView(buf);
-    dv.setFloat64(0, n, false);
-    const hi = dv.getUint32(0, false);
-    const lo = dv.getUint32(4, false);
-    const sign = (hi>>>31) ? -1n : 1n;
-    const exp = (hi>>>20) & 0x7ff;
-    const fracHi = hi & 0xFFFFF;
-
-    let mant = (BigInt(fracHi) << 32n) | BigInt(lo);
-    let e2;
-    if (exp === 0){
-      e2 = -1074; // subnormal
-    } else {
-      mant = (1n<<52n) | mant;
-      e2 = exp - 1023 - 52;
-    }
-    return bfNorm({m: sign*mant, e: e2});
-  }
-
-  function bfAdd(a,b){
-    if (a.m===0n) return b;
-    if (b.m===0n) return a;
-    let am=a.m, ae=a.e|0, bm=b.m, be=b.e|0;
-    if (ae > be){
-      const sh = ae - be;
-      if (sh > 4000) return a;
-      bm = bm >> BigInt(sh);
-      return bfNorm({m: am + bm, e: ae});
-    } else if (be > ae){
-      const sh = be - ae;
-      if (sh > 4000) return b;
-      am = am >> BigInt(sh);
-      return bfNorm({m: am + bm, e: be});
-    } else {
-      return bfNorm({m: am + bm, e: ae});
-    }
-  }
-
-  function bfMul(a,b){
-    if (a.m===0n || b.m===0n) return {m:0n,e:0};
-    return bfNorm({m: a.m*b.m, e: (a.e|0)+(b.e|0)});
-  }
-
-  function bfToFixed(a, bits){
-    bits = bits|0;
-    if (a.m===0n) return 0n;
-    const sh = (a.e|0) + bits;
-    if (sh >= 0) return a.m << BigInt(sh);
-    const rsh = BigInt(-sh);
-    const half = 1n << (rsh-1n);
-    return (a.m + (a.m>=0n?half:-half)) >> rsh;
-  }
-
-  function bfToNumberApprox(a){
-    if (a.m===0n) return 0.0;
-    const m = a.m;
-    const e = a.e|0;
-    const abs = (m<0n)?-m:m;
-    const bl = abs.toString(2).length;
-    const take = Math.min(53, bl);
-    const sh = bl - take;
-    const top = (sh>0) ? (m >> BigInt(sh)) : m;
-    return Number(top) * Math.pow(2, e + sh);
-  }
-    return Number(v) / Math.pow(2, bits);
+      return Number(v) / Math.pow(2, bits);
   }
 
   // Workers
