@@ -247,8 +247,8 @@ const resetBtn = $("resetBtn");
   window.addEventListener("unhandledrejection", (e) => showErr("[unhandledrejection]\n" + ((e.reason && (e.reason.stack || e.reason.message)) || e.reason)));
 
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
-
-  let dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  var dpr = 1; // safe init (no TDZ on mobile)
+  dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
   let cssW = 0, cssH = 0;
   let W = 0, H = 0;
 
