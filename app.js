@@ -93,6 +93,13 @@
   const panelCloseEl = document.getElementById("panelClose");
   const fabPanelEl = document.getElementById("fabPanel");
   const fabEl = document.getElementById("fab") || document.getElementById("helpBtn") || fabPanelEl;
+
+  // Close / Help button handles (avoid ReferenceError)
+  const closeBtnEl = document.getElementById("panelClose")
+    || document.getElementById("closeBtnEl")
+    || document.querySelector("[data-close-panel]")
+    || document.querySelector(".panelClose")
+    || null;
 // PANEL_SHOWHIDE_JS_V967 (late-binding; works even if app.js loads before body)
   function setPanelVisible(on){
     const p = document.getElementById("uiPanel");
@@ -106,16 +113,16 @@
   }
   function bindPanelControls(){
     const fabEl = document.getElementById("fabPanelEl");
-    const closeBtn = document.getElementById("panelCloseEl");
+    const closeBtnEl = document.getElementById("panelCloseEl");
     if(fabEl && !fabEl.__bound){
       fabEl.__bound = true;
       fabEl && fabEl.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
       fabEl && fabEl.addEventListener("touchend", (ev)=>{ ev.preventDefault(); togglePanel(); }, {passive:false});
     }
-    if(closeBtn && !closeBtn.__bound){
-      closeBtn.__bound = true;
-      closeBtn.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
-      closeBtn.addEventListener("touchend", (ev)=>{ ev.preventDefault(); setPanelVisible(false); }, {passive:false});
+    if(closeBtnEl && !closeBtnEl.__bound){
+      closeBtnEl.__bound = true;
+      closeBtnEl && closeBtnEl.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
+      closeBtnEl && closeBtnEl.addEventListener("touchend", (ev)=>{ ev.preventDefault(); setPanelVisible(false); }, {passive:false});
     }
     // default: hide on small screens
     try{
@@ -280,7 +287,7 @@ const resetBtn = $("resetBtn");
   }
 
   fabEl && fabEl.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
-  closeBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
+  closeBtnEl && closeBtnEl.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
 
   // default: hide panel on mobile
   try{

@@ -79,3 +79,21 @@ self.onmessage = (ev) => {
   // Transfer
   self.postMessage({ type:"strip", token, startY, buffer: out.buffer }, [out.buffer]);
 };
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
+  const isCore = url.pathname.endsWith('/app.js') || url.pathname.endsWith('/worker.js') || url.pathname.endsWith('/index.html');
+  const isVersioned = url.searchParams.has('v') || url.searchParams.has('fresh');
+  if (isCore || isVersioned) {
+    event.respondWith(fetch(req, { cache: 'no-store' }).catch(() => caches.match(req)));
+    return;
+  }
+  event.respondWith(
+    caches.match(req).then((cached) => cached || fetch(req).then((res) => {
+      const copy = res.clone();
+      caches.open(CACHE_NAME).then((c) => c.put(req, copy));
+      return res;
+    }))
+  );
+});
