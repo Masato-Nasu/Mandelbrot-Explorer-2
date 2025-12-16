@@ -337,47 +337,24 @@
   }
 }
 
+
+/* v9.6.12 no-duplicate help */
+@media (max-width: 700px) {
+  .panel {
+    max-height: 36vh;
+  }
+  .btnGrid button {
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+}
+
 </style>
 </head>
 <body>
 
   <canvas id="c"></canvas>
-  <div id="hud" class="hud">Loading…</div>
-
-  <div class="panel" id="uiPanel">
-
-    <div class="kidsTop">
-      <div class="kidsHeader">
-        <div class="kidsHeaderText">
-          <div class="kidsTitle">マンデルブロ探検</div>
-          <div class="kidsSub">ズーム：＋/−（スマホ）／ホイール（PC）
-スマホ：＋/−でズーム／1本指ドラッグで移動／ダブルタップで中心（CAD式） / 左クリック/ホイール押し込みでドラッグ / きれいに描く→画像保存</div>
-        </div>
-        <button id="panelClose" class="uiToggleBtn" title="閉じる" aria-label="閉じる">×</button>
-      </div>
-      <div class="bigBtns">
-        <button id="hqBtn" class="primary" title="段階的に高精細化（重い）">きれいに描く</button>
-        <button id="saveBtn" class="alt" title="PNGとして保存">画像を保存</button>
-        <button id="resetBtn" class="alt" title="最初にもどる">はじめにもどる</button>
-        
-      </div>
-      <div class="row">
-        <label>ズームの速さ <span id="zoomSpeedVal" style="color:#bbb;font-size:12px;margin-left:6px;">0.65×</span></label>
-        <input id="zoomSpeed" type="range" min="0.05" max="2.50" step="0.01" value="0.65" />
-      </div>
 </div>
-<div class="hint">
-  【スマホ】
-① ＋／−：ズーム
-② 1本指ドラッグ：移動
-③ ダブルタップ：そこを中心にする
-
-【PC】
-① ホイール：ズーム（カーソルのところ）<br/>
-  ② 左クリック または ホイール押し込み：移動（ドラッグ）<br/>
-  ③ ダブルクリック：そこを中心にする<br/>④ きれいに描く → 画像を保存
-</div>
-  </div>
 
   
   <div><span class="k">ドラッグ</span>移動（パン）</div></div>
