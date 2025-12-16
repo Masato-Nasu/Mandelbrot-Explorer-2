@@ -441,24 +441,34 @@ done++;
   }
 
   function buildReferenceOrbit(cRefX, cRefY, bits, maxIter){
-    // BigInt fixed-point orbit for reference point, but store as Float64Array (approx) for fast perturbation
+    // BigInt fixed-point orbit for reference point, but store as Float64Array (approx) for fast perturbation.
+    // 参照点が外側で早期に発散する場合、BigIntが爆発して RangeError になり得るため、
+    // ここで escape 判定して打ち切ります（その場合は perturbation を使わずフォールバック）。
     const cx = f2fixed(cRefX, bits);
     const cy = f2fixed(cRefY, bits);
     let x = 0n, y = 0n;
+
     const orbit = new Float64Array(maxIter * 2);
+    const escape = 4n << BigInt(bits);
+
+    let validIters = 0;
     for (let i=0; i<maxIter; i++){
       orbit[i*2]   = fixedToFloatApprox(x, bits);
       orbit[i*2+1] = fixedToFloatApprox(y, bits);
+      validIters = i + 1;
 
       const x2 = (x * x) >> BigInt(bits);
       const y2 = (y * y) >> BigInt(bits);
+      if (x2 + y2 > escape) {
+        return { orbit, validIters, escaped: true };
+      }
       const xy = (x * y) >> BigInt(bits);
 
       const nx = x2 - y2 + cx;
       const ny = (2n * xy) + cy;
       x = nx; y = ny;
     }
-    return orbit;
+    return { orbit, validIters, escaped: false };
   }
 
   function renderPerturbation(token, opts){
@@ -484,7 +494,14 @@ done++;
     const cRefY = centerY;
 
     // build orbit once (BigInt, but only for one point)
-    const orbit = buildReferenceOrbit(cRefX, cRefY, bitsUsed, iters);
+    const ref = buildReferenceOrbit(cRefX, cRefY, bitsUsed, iters);
+    const orbit = ref.orbit;
+    if (ref.escaped || ref.validIters < iters) {
+      // 参照点が外側で発散 → perturbation が成立しないので通常描画へ
+      updateHUD("perturb ref escaped -> fallback", performance.now()-start, iters, bitsUsed, step, internal.toFixed(2));
+      renderStandard(token, opts);
+      return;
+    }
 
     // push orbit to all workers (copy per worker, but once per render)
     for (const w of workers) {

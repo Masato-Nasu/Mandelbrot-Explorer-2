@@ -28,3 +28,8 @@ GitHub Pages 手順
 - 起動時デフォルトを Perturbation (fast) に変更
 - Save PNG ボタン / Sキー
 - HQ Render 段階精細化（step 6→3→2→1）
+
+
+## v8.1.1
+- Perturbation参照軌道でescape判定を追加（BigInt暴走による RangeError を回避）
+- 参照点が外側の場合は通常描画へフォールバック
