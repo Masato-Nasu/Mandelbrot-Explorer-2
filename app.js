@@ -88,6 +88,28 @@
   const $ = (id) => document.getElementById(id);
 
   const canvas = $("c");
+
+  // PANEL_SHOWHIDE_JS_V962
+  var uiPanel = document.getElementById("uiPanel");
+  var fabPanel = document.getElementById("fabPanel");
+  var panelClose = document.getElementById("panelClose");
+
+  function setPanelVisible(on){
+    if(!uiPanel) return;
+    uiPanel.classList.toggle("hidden", !on);
+  }
+  function togglePanel(){
+    if(!uiPanel) return;
+    setPanelVisible(uiPanel.classList.contains("hidden"));
+  }
+
+  fabPanel?.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
+  panelClose?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
+
+  // default: hide on small screens
+  try{
+    if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelVisible(false);
+  }catch(e){}
   if (canvas) canvas.style.touchAction = "none";
   const hud = $("hud");
   const errBox = $("errBox");
@@ -111,19 +133,19 @@
   // --- Mobile Mode (lightweight defaults + safer interactions) ---
   let mobileMode = false;
   
-  // Mobile FAB + panel collapse (v9.6.1)
-  var kidsTop = document.getElementById("kidsTop");
+  // Mobile FAB + panel collapse (v9.6.5)
+  var uiPanel = document.getElementById("uiPanel");
   // MOBILE_PANEL_TOGGLE_JS_V961
   var fabPanel = document.getElementById("fabPanel");
   var panelClose = document.getElementById("panelClose");
 
   function setPanelVisible(on){
-    if(!kidsTop) return;
-    kidsTop.classList.toggle("hidden", !on);
+    if(!uiPanel) return;
+    uiPanel.classList.toggle("hidden", !on);
   }
   function togglePanel(){
-    if(!kidsTop) return;
-    setPanelVisible(kidsTop.classList.contains("hidden"));
+    if(!uiPanel) return;
+    setPanelVisible(uiPanel.classList.contains("hidden"));
   }
 
   var collapseBtn = document.getElementById("collapseBtn");
@@ -140,15 +162,15 @@
   }
 
 function setPanelVisible(on){
-    if(!kidsTop) return;
-    kidsTop.classList.toggle("hidden", !!on);
-    if (collapseBtn) collapseBtn.textContent = (kidsTop.classList.contains("hidden") ? "ひらく" : "とじる");
+    if(!uiPanel) return;
+    uiPanel.classList.toggle("hidden", !!on);
+    if (collapseBtn) collapseBtn.textContent = (uiPanel.classList.contains("hidden") ? "ひらく" : "とじる");
   }
 const mobileModeBtn = $("mobileModeBtn");
   const zoomInBtn = $("zoomInBtn");
   const zoomOutBtn = $("zoomOutBtn");
 
-  const uiToggleBtn = $("uiToggleBtn");
+  const panelClose = $("panelClose");
   const panelEl = document.querySelector(".panel");
 
   // Recommended mobile defaults
@@ -259,11 +281,11 @@ const resetBtn = $("resetBtn");
   zoomInBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(+1); });
 
   // FAB bindings (always available on mobile)
-  collapseBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(!(kidsTop && !kidsTop.classList.contains("hidden"))); });
+  collapseBtn?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(!(uiPanel && !uiPanel.classList.contains("hidden"))); });
 
   function panelToggle(){
-    if(!kidsTop) return;
-    setPanelVisible(!kidsTop.classList.contains("hidden"));
+    if(!uiPanel) return;
+    setPanelVisible(!uiPanel.classList.contains("hidden"));
   }
   fabMenu?.addEventListener("click", (ev)=>{ ev.preventDefault(); panelToggle(); });
 
@@ -289,15 +311,15 @@ const resetBtn = $("resetBtn");
     if (typeof detectMobile === "function" && detectMobile()) setPanelVisible(false);
   } catch(e) {}
   if (Math.min(innerWidth, innerHeight) <= 520) setPanelVisible(false);
-  /* forceCollapseIfMobile disabled v9.6.1 */
+  /* forceCollapseIfMobile disabled v9.6.5 */
 
   // Panel compact toggle (especially for mobile)
   function setPanelCompact(on){
     if (!panelEl) return;
     panelEl.classList.toggle("compact", !!on);
-    if (uiToggleBtn) uiToggleBtn.textContent = panelEl.classList.contains("compact") ? "≡" : "×";
+    if (panelClose) panelClose.textContent = panelEl.classList.contains("compact") ? "≡" : "×";
   }
-  uiToggleBtn?.addEventListener("click", (ev) => {
+  panelClose?.addEventListener("click", (ev) => {
     ev.preventDefault();
     setPanelCompact(!(panelEl && panelEl.classList.contains("compact")));
   });
@@ -309,7 +331,7 @@ const resetBtn = $("resetBtn");
   resetBtn?.addEventListener("click", (ev) => { ev.preventDefault(); goHome(); });
   const nukeBtn = $("nukeBtn");
   const helpBtn = $("helpBtn");
-  const helpOverlay = document.getElementById("helpOverlay");
+  
   const helpClose = document.getElementById("helpClose");
   const helpDontShow = document.getElementById("helpDontShow");
 
@@ -321,17 +343,13 @@ const resetBtn = $("resetBtn");
   const HELP_KEY = "mandelbrot_help_seen_v9_2";
 
   function showHelp(force){
-    if (!helpOverlay) return;
-    helpOverlay.style.display = "block";
-    helpOverlay.setAttribute("aria-hidden","false");
+    
     if (force) {
       // keep
     }
   }
   function hideHelp(){
-    if (!helpOverlay) return;
-    helpOverlay.style.display = "none";
-    helpOverlay.setAttribute("aria-hidden","true");
+    
   }
   function markHelpSeen(){
     try{ localStorage.setItem(HELP_KEY, "1"); }catch(e){}
@@ -554,7 +572,6 @@ function fixed2f(v, bits){
     // Mouse drag uses dedicated mouse events (more reliable across browsers)
     if (ev.pointerType === "mouse") return;
     ev.preventDefault();
-    if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     hqOnUserInput();
     // Drag start: allow LEFT button or MIDDLE (wheel press) for mouse.
     if (ev.pointerType === "mouse") {
@@ -622,7 +639,6 @@ function fixed2f(v, bits){
   canvas.addEventListener("mousedown", (ev) => {
     if (!mouseDownOk(ev)) return;
     ev.preventDefault();
-    if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     hqOnUserInput();
 
     // stop browser autoscroll on middle click
@@ -685,7 +701,6 @@ function fixed2f(v, bits){
 
 canvas.addEventListener("wheel", (ev) => {
     ev.preventDefault();
-    if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     hqOnUserInput();
     const {x:px, y:py} = canvasXY(ev);
 
@@ -738,7 +753,6 @@ canvas.addEventListener("wheel", (ev) => {
 
   canvas.addEventListener("dblclick", (ev) => {
     ev.preventDefault();
-    if (helpOverlay && helpOverlay.style.display==="block") hideHelpAndMark();
     hqOnUserInput();
     const p = canvasXY(ev);
     // center to point
@@ -772,7 +786,6 @@ canvas.addEventListener("wheel", (ev) => {
     if (ev.key.toLowerCase() === "r") doReset();
     if (ev.key.toLowerCase() === "s") savePNG();
     if (ev.key === "?" || ev.key.toLowerCase() === "h") {
-      if (helpOverlay && helpOverlay.style.display==="block") hideHelp(); else showHelp(true);
     }
   }, { passive:true });
 

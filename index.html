@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0f" />
-  <title>Mandelbrot Explorer v9.6.1 Kids UI</title>
+  <title>Mandelbrot Explorer v9.6.5 Kids UI</title>
   <link rel="icon" href="./favicon.ico" />
   <style>
     html,body{margin:0;height:100%;background:#0b0b0f;overflow:hidden}
@@ -51,35 +51,23 @@
       max-height:40vh;overflow:auto;
     }
   
-    /* Help overlay */
-    #helpOverlay{
       position:fixed; inset:0; display:none; z-index:9999;
       background:rgba(0,0,0,0.70);
       backdrop-filter: blur(3px);
     }
-    #helpOverlay .panel{
       position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
       width:min(720px, calc(100vw - 24px));
       background:#111; color:#eee; border:1px solid #333;
       border-radius:14px; padding:18px 18px 14px;
       box-shadow: 0 18px 60px rgba(0,0,0,0.55);
     }
-    #helpOverlay h2{ margin:0 0 10px; font-size:18px; font-weight:700; }
-    #helpOverlay .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-    #helpOverlay .card{
       background:#151515; border:1px solid #2a2a2a; border-radius:12px;
       padding:10px 12px; line-height:1.35;
     }
-    #helpOverlay .k{ display:inline-block; min-width: 9.5em; color:#bbb; }
-    #helpOverlay .note{ color:#bbb; font-size:12px; margin-top:10px; }
-    #helpOverlay .btnRow{ display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
-    #helpOverlay button{
       border:1px solid #3a3a3a; background:#1b1b1b; color:#eee;
       border-radius:10px; padding:8px 12px; cursor:pointer;
     }
-    #helpOverlay button:hover{ background:#242424; }
     @media (max-width: 640px){
-      #helpOverlay .grid{ grid-template-columns: 1fr; }
     }
 
     #deepBadge{
@@ -134,19 +122,6 @@
 
     canvas{touch-action:none}
     html,body{overscroll-behavior:none}
-
-    #verFixed{
-      position:fixed; right:10px; bottom:10px; z-index:2147483647;
-      padding:8px 10px; border-radius:12px;
-      background: rgba(0,0,0,0.65);
-      border:1px solid rgba(255,255,255,0.18);
-      color:#fff;
-      font:700 12px/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      letter-spacing:.02em;
-      pointer-events:none;
-      user-select:none;
-      box-shadow: 0 8px 22px rgba(0,0,0,0.35);
-    }
 
     .pill{padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);
       background:rgba(255,255,255,.06);color:#fff;font-weight:700;cursor:pointer}
@@ -209,13 +184,12 @@
 @media (max-width: 520px){
   #mobileFab{ display:flex; }
 
-  #verFixed{
     right:10px; bottom: calc(12px + env(safe-area-inset-bottom));
     font-size:11px; padding:6px 9px;
     border-radius:999px;
   }
 
-  #kidsTop{
+  #uiPanel{
     position:fixed;
     left:10px; right:10px;
     top:10px;
@@ -225,22 +199,22 @@
     padding:10px;
     border-radius:18px;
   }
-  #kidsTop h1{ font-size:18px; margin:0 0 6px 0; }
-  #kidsTop button{ min-height:44px; font-size:15px; }
-  #kidsTop .grid2{ gap:10px; }
-  #kidsTop .tiny, #kidsTop .helptext{ font-size:12px; }
+  #uiPanel h1{ font-size:18px; margin:0 0 6px 0; }
+  #uiPanel button{ min-height:44px; font-size:15px; }
+  #uiPanel .grid2{ gap:10px; }
+  #uiPanel .tiny, #uiPanel .helptext{ font-size:12px; }
 
-  #kidsTop.collapsed{
+  #uiPanel.collapsed_removed{
     max-height: 64px;
     overflow:hidden;
     padding-bottom:8px;
   }
-  #kidsTop.collapsed .grid2,
-  #kidsTop.collapsed .row,
-  #kidsTop.collapsed details{
+  #uiPanel.collapsed_removed .grid2,
+  #uiPanel.collapsed_removed .row,
+  #uiPanel.collapsed_removed details{
     display:none !important;
   }
-  #kidsTop .collapseBar{
+  #uiPanel .collapseBar{
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -248,11 +222,11 @@
     margin-top:6px;
   }
     /* Robust collapse: hide everything except title + bar */
-  #kidsTop.collapsed > *{ display:none !important; }
-  #kidsTop.collapsed h1{ display:block !important; }
-  #kidsTop.collapsed .collapseBar{ display:flex !important; }
+  #uiPanel.collapsed_removed > *{ display:none !important; }
+  #uiPanel.collapsed_removed h1{ display:block !important; }
+  #uiPanel.collapsed_removed .collapseBar{ display:flex !important; }
 
-  #kidsTop .collapseBtn{
+  #uiPanel .collapseBtn{
     padding:8px 12px;
     min-height:40px;
     border-radius:999px;
@@ -281,13 +255,13 @@
 }
 #fabPanel:active{ transform: translateY(1px); }
 
-#kidsTop.hidden{ display:none !important; }
-#kidsTop{ position:fixed; }
+#uiPanel.hidden{ display:none !important; }
+#uiPanel{ position:fixed; }
 
 @media (max-width: 520px){
   #fabPanel{ display:block; }
   /* on phone: panel should not take entire screen; keep scroll */
-  #kidsTop{
+  #uiPanel{
     left:10px; right:10px; top:10px;
     max-height: 60vh;
     overflow:auto;
@@ -305,14 +279,38 @@
     font-weight:900;
   }
 }
+
+/* PANEL_SHOWHIDE_V962 */
+#uiPanel.hidden{ display:none !important; }
+#fabPanel{
+  position:fixed;
+  right:12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  width:48px; height:48px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.55);
+  color:#fff;
+  font:900 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+  z-index:2147483601;
+  display:block;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#fabPanel:active{ transform: translateY(1px); }
+
+@media (max-width: 520px){
+  /* phone: start hidden, show via ? */
+  #uiPanel{ max-height: 60vh; overflow:auto; }
+}
 </style>
 </head>
 <body>
-<div id="verFixed"></div>
+
   <canvas id="c"></canvas>
   <div id="hud" class="hud">Loading…</div>
 
-  <div class="panel">
+  <div class="panel" id="uiPanel">
 
     <div class="kidsTop">
       <div class="kidsHeader">
@@ -321,20 +319,20 @@
           <div class="kidsSub">ズーム：＋/−（スマホ）／ホイール（PC）
 スマホ：＋/−でズーム／1本指ドラッグで移動／ダブルタップで中心（CAD式） / 左クリック/ホイール押し込みでドラッグ / きれいに描く→画像保存</div>
         </div>
-        <button id="uiToggleBtn" class="uiToggleBtn" title="メニューをたたむ/開く">≡</button>
+        <button id="panelClose" class="uiToggleBtn" title="閉じる" aria-label="閉じる">×</button>
       </div>
       <div class="bigBtns">
         <button id="hqBtn" class="primary" title="段階的に高精細化（重い）">きれいに描く</button>
         <button id="saveBtn" class="alt" title="PNGとして保存">画像を保存</button>
         <button id="resetBtn" class="alt" title="最初にもどる">はじめにもどる</button>
-        <button id="helpBtn" class="alt" title="つかいかた">つかいかた</button>
+        
       </div>
       <div class="row">
         <label>ズームの速さ <span id="zoomSpeedVal" style="color:#bbb;font-size:12px;margin-left:6px;">0.65×</span></label>
         <input id="zoomSpeed" type="range" min="0.05" max="2.50" step="0.01" value="0.65" />
       </div>
 </div>
-        <details class="advanced"><summary>くわしく</summary>
+        <details class="advanced"><summary>設定</summary>
 <div class="row">
       <label>モード</label>
       <select id="mode">
@@ -394,11 +392,7 @@
   </div>
 
   
-  <div id="helpOverlay" aria-hidden="true">
-    <div class="panel" role="dialog" aria-modal="true" aria-label="使い方">
-      <h2>つかいかた（かんたん）</h2>
-      <div class="grid">
-        <div class="card"><div><span class="k">ホイール</span>ズーム（カーソル中心）</div><div><span class="k">ドラッグ</span>移動（パン）</div></div>
+  <div><span class="k">ドラッグ</span>移動（パン）</div></div>
         <div class="card"><div><span class="k">クリック</span>中心合わせ</div><div><span class="k">ダブルクリック</span>中心合わせ＋ズームイン</div></div>
         <div class="card"><div><span class="k">きれいに描く</span>止め絵を高精細で仕上げ</div><div><span class="k">Save PNG / S</span>画像として保存</div></div>
         <div class="card"><div><span class="k">超深度</span>超深度允许（ONなら深い領域で自動的にDeepNavに移行。HUDのactiveがONになります）</div><div><span class="k">Reset / R</span>初期位置へ</div></div>
@@ -452,16 +446,6 @@
       document.head.appendChild(s);
     })();
   </script>
-
-<script>
-(() => {
-  const el = document.getElementById('verFixed');
-  if (!el) return;
-  const qs = new URLSearchParams(location.search);
-  const v = qs.get('v') || '9.6.1';
-  el.textContent = `v${v}  build:2025-12-16T11:09:27Z`;
-})();
-</script>
 
 <div id="mobileFab" aria-hidden="false">
   <button id="fabZoomOut" class="fab" title="ズームアウト">−</button>
