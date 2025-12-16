@@ -177,3 +177,9 @@ GitHub Pages 手順
 ## v9.5.5
 - スマホ起動エラー修正：cssW/cssH の初期化前参照（TDZ）を回避（var化）
 - 更新確認：右下に v9.5.5 build を表示
+
+
+## v9.5.6
+- スマホ起動エラー修正：Mobile Mode 自動適用を遅延実行（初期化完了後）
+- renderToken のTDZを回避（var化）
+- 更新確認：右下に v9.5.6 build を表示

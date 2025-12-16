@@ -127,6 +127,8 @@
   }
 
   function setMobileMode(on) {
+    if (!W || !H) { mobileMode = !!on; try{localStorage.setItem("mobileMode", mobileMode?"1":"0");}catch(e){} return; }
+
     mobileMode = !!on;
     try { localStorage.setItem("mobileMode", mobileMode ? "1" : "0"); } catch(e) {}
     if (mobileModeBtn) {
@@ -168,7 +170,8 @@ const resetBtn = $("resetBtn");
     try{ if (followTimer) { clearTimeout(followTimer); followTimer=null; } }catch(e){}
     requestRender("home", {preview:true});
   }
-
+  // Mobile Mode: restore / auto-detect (defer so core vars initialize)
+  setTimeout(() => {
   // Mobile Mode: restore / auto-detect
   try {
     const stored = localStorage.getItem("mobileMode");
@@ -177,7 +180,7 @@ const resetBtn = $("resetBtn");
   } catch(e) {
     if (detectMobile()) setMobileMode(true);
   }
-
+  }, 0);
   mobileModeBtn?.addEventListener("click", (ev) => {
     ev.preventDefault();
     setMobileMode(!mobileMode);
@@ -396,7 +399,7 @@ function fixed2f(v, bits){
   let lastX = 0, lastY = 0;
   let isMouseDragging = false;
   let mouseButtonMask = 0;
-  let renderToken = 0;
+  var renderToken = 0; // var to avoid TDZ on some mobile browsers
   // HQ sequence control (so you can keep exploring after a HQ render)
   let hqActive = false;
   let hqTimers = [];
