@@ -89,28 +89,43 @@
 
   const canvas = $("c");
 
-  // PANEL_SHOWHIDE_JS_V962
-  var uiPanel = document.getElementById("uiPanel");
-  var fabPanel = document.getElementById("fabPanel");
-  var panelClose = document.getElementById("panelClose");
-
+  // PANEL_SHOWHIDE_JS_V967 (late-binding; works even if app.js loads before body)
   function setPanelVisible(on){
-    if(!uiPanel) return;
-    uiPanel.classList.toggle("hidden", !on);
+    const p = document.getElementById("uiPanel");
+    if(!p) return;
+    p.classList.toggle("hidden", !on);
   }
   function togglePanel(){
-    if(!uiPanel) return;
-    setPanelVisible(uiPanel.classList.contains("hidden"));
+    const p = document.getElementById("uiPanel");
+    if(!p) return;
+    setPanelVisible(p.classList.contains("hidden"));
   }
+  function bindPanelControls(){
+    const fab = document.getElementById("fabPanel");
+    const closeBtn = document.getElementById("panelClose");
+    if(fab && !fab.__bound){
+      fab.__bound = true;
+      fab.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
+      fab.addEventListener("touchend", (ev)=>{ ev.preventDefault(); togglePanel(); }, {passive:false});
+    }
+    if(closeBtn && !closeBtn.__bound){
+      closeBtn.__bound = true;
+      closeBtn.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
+      closeBtn.addEventListener("touchend", (ev)=>{ ev.preventDefault(); setPanelVisible(false); }, {passive:false});
+    }
+    // default: hide on small screens
+    try{
+      if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelVisible(false);
+    }catch(e){}
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindPanelControls, {once:true});
+  } else {
+    bindPanelControls();
+  }
+  window.addEventListener("pageshow", () => { try{ bindPanelControls(); }catch(e){} }, {passive:true});
 
-  fabPanel?.addEventListener("click", (ev)=>{ ev.preventDefault(); togglePanel(); });
-  panelClose?.addEventListener("click", (ev)=>{ ev.preventDefault(); setPanelVisible(false); });
-
-  // default: hide on small screens
-  try{
-    if (window.matchMedia && matchMedia("(max-width: 520px)").matches) setPanelVisible(false);
-  }catch(e){}
-  if (canvas) canvas.style.touchAction = "none";
+    if (canvas) canvas.style.touchAction = "none";
   const hud = $("hud");
   const errBox = $("errBox");
 
@@ -133,7 +148,7 @@
   // --- Mobile Mode (lightweight defaults + safer interactions) ---
   let mobileMode = false;
   
-  // Mobile FAB + panel collapse (v9.6.6)
+  // Mobile FAB + panel collapse (v9.6.7)
   var uiPanel = document.getElementById("uiPanel");
   
 const mobileModeBtn = $("mobileModeBtn");
@@ -273,7 +288,7 @@ const resetBtn = $("resetBtn");
     if (typeof detectMobile === "function" && detectMobile()) setPanelVisible(false);
   } catch(e) {}
   if (Math.min(innerWidth, innerHeight) <= 520) setPanelVisible(false);
-  /* forceCollapseIfMobile disabled v9.6.6 */
+  /* forceCollapseIfMobile disabled v9.6.7 */
 
   // Panel compact toggle (especially for mobile)
   zoomOutBtn?.addEventListener("click", (ev) => { ev.preventDefault(); zoomByButton(-1); });

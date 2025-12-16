@@ -233,3 +233,7 @@ GitHub Pages 手順
 ## v9.6.6
 - mobile: panelClose の重複宣言を解消（SyntaxError修正）
 - 未定義の collapseBtn/fabMenu/fabZoomIn/fabZoomOut 参照を削除（ReferenceError予防）
+
+
+## v9.6.7
+- モバイルで「？」を押してもパネルが出ない問題を修正（app.js の読み込み順に依存しない late-binding 方式へ）
