@@ -249,8 +249,8 @@ const resetBtn = $("resetBtn");
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
   var dpr = 1; // safe init (no TDZ on mobile)
   dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
-  let cssW = 0, cssH = 0;
-  let W = 0, H = 0;
+  var cssW = 0, cssH = 0; // var to avoid TDZ on some mobile browsers
+  var W = 0, H = 0; // var to avoid TDZ
 
   // view parameters (center in float64 for UI; also fixed-point for UltraDeep)
   let centerX = -0.5;
@@ -268,7 +268,7 @@ const resetBtn = $("resetBtn");
   var deepAlways = false; // disabled (simplified UI)
   var lastDeepActive = false;
   let followEnabled = true;
-  let followTimer = null;
+  var followTimer = null;
   let panRaf = null; // throttle for deep pan preview
   let centerXBF = bfFromNumber(centerX);
   let centerYBF = bfFromNumber(centerY);
