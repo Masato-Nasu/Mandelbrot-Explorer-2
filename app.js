@@ -1,8 +1,8 @@
 (() => {
-  const BUILD = "20251214_v4_fast";
+  const BUILD = "v9.7.2";
   const canvas = document.getElementById("c");
   const hud = document.getElementById("hud");
-  const errBox = document.getElementById("err");
+  const errBox = document.getElementById("errBox");
   const autoBitsEl = document.getElementById("autoBits");
   const bitsEl = document.getElementById("bits");
   const stepEl = document.getElementById("step");
@@ -27,10 +27,12 @@
   let initialScale = 0n;
 
   function showError(e) {
+    if (!errBox) { console.error(e); return; }
     errBox.style.display = "block";
     errBox.textContent = String(e && e.stack ? e.stack : e);
   }
   function clearError() {
+    if (!errBox) return;
     errBox.style.display = "none";
     errBox.textContent = "";
   }
@@ -365,10 +367,12 @@
     if (ev.key.toLowerCase() === "r") resetView();
   }, { passive: true });
 
-  resetBtn.addEventListener("click", () => resetView());
-  nukeBtn.addEventListener("click", () => {
-    location.href = "./reset.html?cb=" + Date.now();
-  });
+  if (resetBtn) resetBtn.addEventListener("click", () => resetView());
+  if (nukeBtn) {
+    nukeBtn.addEventListener("click", () => {
+      location.href = "./reset.html?cb=" + Date.now();
+    });
+  }
 
   // UI bindings
   bitsEl.addEventListener("change", () => {

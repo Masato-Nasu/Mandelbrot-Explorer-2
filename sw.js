@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mde-pwa-v9.7.1';
+const CACHE_NAME = 'mde-pwa-v9.7.2';
 const urlsToCache = [
   './',
   './index.html',
