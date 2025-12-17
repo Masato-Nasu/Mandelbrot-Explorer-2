@@ -33,11 +33,7 @@
     await Promise.all(keys.map(k => caches.delete(k)));
   } catch(e) {}
   try { localStorage.clear(); sessionStorage.clear(); } catch(e) {}
-  (function(){
-  const u = new URL(location.href);
-  const v = u.searchParams.get('v') || '9.7.1';
-  location.replace('./?v=' + encodeURIComponent(v) + '&fresh=' + Date.now());
-})();
+  location.replace("./?v=9.6.18");
 })();
 </script>
 </body>

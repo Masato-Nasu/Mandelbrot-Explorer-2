@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mde-pwa-v9.7.2';
+const CACHE_NAME = 'mandelbrot-pwa-v4-fixed';
 const urlsToCache = [
   './',
   './index.html',
@@ -12,7 +12,6 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
@@ -27,7 +26,6 @@ self.addEventListener('fetch', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim());
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
